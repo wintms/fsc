@@ -15,6 +15,15 @@
 #define FSC_CTL_INVALID         0
 #define FSC_CTL_PID             1
 #define FSC_CTL_LINEAR          2
+#define FSC_CTL_AMBIENT_BASE    3
+
+// Ambient calibration algorithm types
+#define FSC_AMBIENT_CAL_POLYNOMIAL  0
+#define FSC_AMBIENT_CAL_PIECEWISE   1
+
+// Maximum polynomial coefficients and piecewise points
+#define MAX_POLYNOMIAL_COEFFS       4
+#define MAX_PIECEWISE_POINTS        10
 
 // Ladder can supoort max 20 steps
 #define MAX_FAN_CONTROL_STEPS   20
@@ -51,6 +60,36 @@ typedef struct
 	INT8U FallingHyst;
 } PACKED FSCLinear;
 
+// Ambient calibration structure for inlet sensor correction
+typedef struct
+{
+    INT8U CalType;                          // Calibration type: polynomial or piecewise
+    INT8U CoeffCount;                       // Number of coefficients for polynomial
+    float Coefficients[MAX_POLYNOMIAL_COEFFS]; // Polynomial coefficients [a0, a1, a2, a3] for ΔT = a0 + a1*PWM + a2*PWM^2 + a3*PWM^3
+    INT8U PointCount;                       // Number of points for piecewise linear
+    struct {
+        INT8U pwm;                          // PWM value
+        float delta_temp;                   // Temperature delta at this PWM
+    } PiecewisePoints[MAX_PIECEWISE_POINTS];
+} PACKED FSCAmbientCalibration;
+
+// Ambient base curve structure for environment temperature to PWM mapping
+typedef struct
+{
+    INT8U CurveType;                        // Curve type: polynomial or piecewise
+    INT8U LoadScenario;                     // Load scenario: 0=idle, 1=low_power, 2=full_load
+    INT8U CoeffCount;                       // Number of coefficients for polynomial
+    float Coefficients[MAX_POLYNOMIAL_COEFFS]; // Polynomial coefficients for PWM = f(Ambient_temp)
+    INT8U PointCount;                       // Number of points for piecewise linear
+    struct {
+        INT8U temp;                         // Ambient temperature
+        INT8U pwm;                          // PWM value at this temperature
+    } PiecewisePoints[MAX_PIECEWISE_POINTS];
+    INT8U FallingHyst;                      // Falling hysteresis in degrees C (default 2)
+    INT8U MaxRisingRate;                    // Maximum rising rate %/cycle (default 10)
+    INT8U MaxFallingRate;                   // Maximum falling rate %/cycle (default 5)
+} PACKED FSCAmbientBase;
+
 typedef struct
 {
     INT8U  SensorNumber;            // Sensor number
@@ -69,13 +108,17 @@ typedef struct
     union fscparam_t{
         FSCPID pidparam;
         FSCLinear linearparam;
+        FSCAmbientBase ambientbaseparam;
     }fscparam;
 
 } PACKED FSCTempSensor;
 
 extern FSCTempSensor pFSCTempSensorInfo[FSC_SENSOR_CNT_MAX];
+extern FSCAmbientCalibration g_AmbientCalibration;
 
 extern int FSCGetPWMValue( INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst );
+extern float FSCGetAmbientTemperature(INT16S inlet_temp, INT8U last_pwm, INT8U verbose);
+extern int FSCGetPWMValue_AmbientBase(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst);
 
 
 #endif // FSC_CORE_H

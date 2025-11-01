@@ -1,0 +1,69 @@
+{
+    "description": "Z9964F B2F Fan Speed Control Configuration with Polynomial Ambient Calibration (Based on Real Data)",
+    "debug_verbose": 1,
+
+    "system_info": {
+        "chassis_fan_max_num": 5,
+        "chassis_fan_used_num": 5,
+        "chassis_fan_rotor_num": 2,
+        "chassis_fan_redundant_num": 0,
+        "psu_fan_max_num": 4,
+        "psu_fan_used_num": 4,
+        "psu_fan_redundant_num": 0,
+        "system_fan_airflow_max_num": 1,
+        "system_fan_airflow": 1,
+        "fsc_mode": "auto",
+        "fsc_version": "0.2",
+        "fan_max_pwm": 100,
+        "fan_initial_pwm": 30
+    },
+
+    "ambient_calibration": {
+        "cal_type": 0,
+        "coeff_count": 4,
+        "coefficients": [9.2, -0.18, 0.0025, -0.000015]
+    },
+
+    "profile_info": {
+        "profile_list": [
+            {
+                "label": "CPU internal sensor",
+                "profile_index": 1,
+                "sensor_num": 114,
+                "sensor_name": "CPU",
+                "type": "pid",
+                "setpoint": 96,
+                "setpoint_type": 0,
+                "kp": 2.5,
+                "ki": 0.15,
+                "kd": 0.2
+            },
+            {
+                "label": "Switch internal sensor",
+                "profile_index": 2,
+                "sensor_num": 115,
+                "sensor_name": "SW_U14",
+                "type": "linear",
+                "TempMin": 42,
+                "TempMax": 52,
+                "PwmMin": 50,
+                "PwmMax": 100,
+                "FallingHyst": 3
+            },
+            {
+                "label": "Inlet sensor with ambient base curve",
+                "profile_index": 3,
+                "sensor_num": 116,
+                "sensor_name": "SW_U16",
+                "type": "ambient_base",
+                "curve_type": 0,
+                "load_scenario": 0,
+                "coeff_count": 3,
+                "coefficients": [25.0, 0.75, 0.005],
+                "falling_hyst": 2,
+                "max_rising_rate": 10,
+                "max_falling_rate": 5
+            }
+        ]
+    }
+}

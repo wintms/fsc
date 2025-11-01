@@ -140,6 +140,22 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
                 pFSCTempSensorInfo[i].fscparam.linearparam.FallingHyst = g_FscProfileInfo.ProfileInfo[i].LinearParameter.FallingHyst;
                 break;
 
+            case FSC_CTL_AMBIENT_BASE:
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.CurveType = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.CurveType;
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.LoadScenario = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.LoadScenario;
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.CoeffCount = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.CoeffCount;
+                memcpy(pFSCTempSensorInfo[i].fscparam.ambientbaseparam.Coefficients, 
+                       g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.Coefficients, 
+                       sizeof(float) * MAX_POLYNOMIAL_COEFFS);
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.PointCount = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.PointCount;
+                memcpy(pFSCTempSensorInfo[i].fscparam.ambientbaseparam.PiecewisePoints, 
+                       g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.PiecewisePoints, 
+                       sizeof(g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.PiecewisePoints));
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.FallingHyst = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.FallingHyst;
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.MaxRisingRate = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.MaxRisingRate;
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.MaxFallingRate = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.MaxFallingRate;
+                break;
+
             default:
                 FSCPRINT("Invalid Cooling algorithm. \n");
                 return -1;
