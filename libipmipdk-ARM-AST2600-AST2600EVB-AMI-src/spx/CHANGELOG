@@ -1,0 +1,358 @@
+Package: libipmipdk (13.41.0.0.0); urgency = high
+
+Abstract:
+	Coverity Fix in IPMI Modules - libipmipdk, liblicense (nirmalkumarv@ami.com)
+
+Files Modified: data/PDKFRU.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2025-02-24T09:39:07+00:00
+
+Package: libipmipdk (13.40.0.0.0); urgency = high
+
+Abstract:
+	Fix for chassis always power on when BMC cold reset command executed. (nandakumarn@ami.com)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2024-08-30T05:29:49+00:00
+
+Package: libipmipdk (13.39.0.0.0); urgency = high
+
+Abstract:
+	V13 update 7.00 AST2600EVB feature branch migrated into lts v13 (senguttuvanm@ami.com)
+
+Files Modified: data/PDKInt.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2024-03-02T12:01:23+00:00
+
+Package: libipmipdk (13.38.0.0.0); urgency = high
+
+Abstract:
+	Adding condition to get val_GPIO_PS_PWROK data in PDK_GetPSGood() while online flash support enable. (pandiarajt@ami.com)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2023-10-12T07:14:09+00:00
+
+Package: libipmipdk (13.37.0.0.0); urgency = high
+
+Abstract:
+	v13-update-6.00 Core AST2600EVB Feature-Branch (senguttuvanm@ami.com)
+
+Files Modified: data/PDKHW.c, data/PDKInt.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2023-09-29T11:47:25+00:00
+
+Package: libipmipdk (13.36.0.0.0); urgency = high
+
+Abstract:
+	Added PDK Hook to update the USB PORT Value used for Media Redirection (rajamanickams@ami.com)
+
+Files Modified: data/PDKHooks.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2023-05-02T09:04:18+00:00
+
+Package: libipmipdk (13.35.0.0.0); urgency = high
+
+Abstract:
+	Unplugging ported fru is not handled properly, EIP-714500 (edsonlee@ami.com)
+
+Files Modified: data/PDKEEPROM.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2023-01-24T06:14:35+00:00
+
+Package: libipmipdk (13.34.0.0.0); urgency = high
+
+Abstract:
+	Removing the PDK_RegisterSensorHooks function call as it is already called in sensor monitor task (nandakumarn@ami.com)
+
+Files Modified: data/PDKHooks.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2023-01-11T05:23:48+00:00
+
+Package: libipmipdk (13.33.0.0.0); urgency = high
+
+Abstract:
+	"enlarge snoop buffer to 1024". (owenchou@ami.com)
+
+Files Modified: data/PDKHooks.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-12-05T05:48:35+00:00
+
+Package: libipmipdk (13.32.0.0.0); urgency = high
+
+Abstract:
+	Added Fix For Resource Leak (surendarb@ami.com)
+
+Files Modified: data/PDKInt.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-10-26T06:40:35+00:00
+
+Package: libipmipdk (13.31.0.0.0); urgency = high
+
+Abstract:
+	Restore WCS change to LTS-v13 (shivashankarr@ami.com)
+
+Files Modified: data/PDKHooks.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-10-19T12:33:16+00:00
+
+Package: libipmipdk (13.30.0.0.0); urgency = high
+
+Abstract:
+	Fix to add pwbtn output contronl logic in power on chassis and remove it from platfrom init to resolve host power state issue (robinchiu@ami.com)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-09-28T11:10:01+00:00
+
+Package: libipmipdk (13.29.0.0.0); urgency = high
+
+Abstract:
+	Fix for Bullseye target compilation errors (nandakumarn@ami.com)
+
+Files Modified: data/PDKAlert.c, data/PDKHW.c, data/PDKInt.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-08-25T04:20:55+00:00
+
+Package: libipmipdk (13.28.0.0.0); urgency = high
+
+Abstract:
+	fix for polling the wrong GPIO interrupt (nandakumarn@ami.com)
+
+Files Modified: data/PDKInt.c
+
+--Submitter: Balasubramanian C (balasubramanianc)() 2022-07-22T14:00:00+00:00
+
+Package: libipmipdk (13.27.0.0.0); urgency = high
+
+Abstract:
+	
+
+
+--Submitter: Balasubramanian C (balasubramanianc)() 2022-07-22T08:48:10+00:00
+
+Package: libipmipdk (13.26.0.0.0); urgency = high
+
+Abstract:
+	EIP 683212 The array "gpio_intr" in the function "PDK_RegGPIOInts" is not assigned any GPIO interrupt data before unregister (612-derekhuang@users.noreply.git.ami.com)
+
+Files Modified: data/PDKInt.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-06-28T04:52:07+00:00
+
+Package: libipmipdk (13.25.0.0.0); urgency = high
+
+Abstract:
+	Removed Redundant PDK Hook Function call and Cold Reset default functionality (prakashs@ami.com)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-06-24T04:34:15+00:00
+
+Package: libipmipdk (13.24.0.0.0); urgency = high
+
+Abstract:
+	Fix to remove MD5 Support in Cipher Suite (vaibhavs@ami.com)
+
+Files Modified: data/PDKHooks.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-06-21T10:25:39+00:00
+
+Package: libipmipdk (13.23.0.0.0); urgency = high
+
+Abstract:
+	Fix for Coverity Issues Part 1 and 2 (root@smtp.com)
+
+Files Modified: data/PDKHooks.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-06-20T05:05:59+00:00
+
+Package: libipmipdk (13.22.0.0.0); urgency = high
+
+Abstract:
+	Fixed the syntax errors in PDK_RegisterAllFRUs() (robertlin@ami.com.tw)
+
+Files Modified: data/PDKFRU.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-06-16T04:46:14+00:00
+
+Package: libipmipdk (13.21.0.0.0); urgency = critical
+
+Abstract:
+	Migrating the changes from Feature-Branch to LTS-v13 (senguttuvanm@ami.com)
+
+Files Modified: data/PDKHooks.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-05-08T03:55:56-04:00
+
+Package: libipmipdk (13.20.0.0.0); urgency = high
+
+Abstract:
+	Fix for Coverity[LTS-v13] issues in libipmipdk packages (shivashankarr@ami.com)
+
+Files Modified: data/PDKAlert.c, data/PDKHW.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2022-05-07T03:39:36+00:00
+
+Package: libipmipdk (13.8.8.0.0); urgency = high
+
+Abstract:
+	Fix EIP 658701. BMC sends packet via eth0 interface when SMTP interface setting to eth1. (ethanwei@ami.com)
+
+Files Modified: data/PDKAlert.c
+
+--Submitter: Balasubramanian C (balasubramanianc)() 2022-02-17T06:40:39+00:00
+
+Package: libipmipdk (13.8.7.0.0); urgency = high
+
+Abstract:
+	Improve IPMI Response Time (vaibhavs@ami.com)
+
+Files Modified: data/PDKHooks.c
+
+--Submitter: jcchiu (jcchiu)() 2021-11-09T09:32:19+00:00
+
+Package: libipmipdk (13.8.6.0.0); urgency = high
+
+Abstract:
+	Fix for Coverity[LTS-v13] issues in libipmipdk package (shivashankarr@amiindia.co.in)
+
+Files Modified: data/PDKInt.c
+
+--Submitter: jcchiu (jcchiu)() 2021-07-28T16:37:01+00:00
+
+Package: libipmipdk (13.8.5.0.0); urgency = high
+
+Abstract:
+	Added changes to coverity fixes for libipmipdk package (sureshp@ami.com)
+
+Files Modified: data/PDKInt.c
+
+--Submitter: jcchiu (jcchiu)() 2021-06-23T01:01:43+00:00
+
+Package: libipmipdk (13.8.4.0.0); urgency = high
+
+Abstract:
+	set_gpio_dir_high_in_pdk (desmondwu@ami.com.tw)
+	set_gpio_dir_high_in_pdk (desmondwu@ami.com.tw)
+
+Files Modified: data/PDKHW.c, data/PDKHW.c
+
+--Submitter: jcchiu (jcchiu)() 2021-05-26T00:31:21+00:00
+
+Package: libipmipdk (13.8.3.0.0); urgency = high
+
+Abstract:
+	Fix to correct gpio pin and behavior for host reset control function (robertlin@ami.com.tw)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: ivanlee (ivanlee)() 2020-12-25T04:00:08-05:00
+
+Package: libipmipdk (13.8.2.0.0); urgency = high
+
+Abstract:
+	Support EEPROM Read and Write (jonnychung@ami.com.tw)
+
+Files Modified: data/PDKEEPROM.c
+
+--Submitter: ivanlee (ivanlee)() 2020-11-29T23:19:45-05:00
+
+Package: libipmipdk (13.8.1.0.0); urgency = high
+
+Abstract:
+	Fix to the host power cannot be turned off by the ipmi chassis command (robertlin@ami.com.tw)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: ivanlee (ivanlee)() 2020-11-18T08:51:43-05:00
+
+Package: libipmipdk (13.8.0.0.0); urgency = low
+
+Abstract:
+	Add the LPC reset driver on ast2600 (robertlin@ami.com.tw)
+
+Files Modified: data/PDKHooks.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2020-09-18T13:17:15-04:00
+
+Package: libipmipdk (13.7.0.0.0); urgency = low
+
+Abstract:
+	Add the gpio interrupt sample code for QA test (robertlin@ami.com.tw)
+
+Files Modified: data/PDKInt.c
+
+--Submitter: ivanlee (ivanlee)() 2020-09-12T00:45:28-04:00
+
+Package: libipmipdk (13.6.0.0.0); urgency = low
+
+Abstract:
+	Added code for Chassis reset (senguttuvanm@ami.com)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2020-09-10T18:46:29-04:00
+
+Package: libipmipdk (13.5.0.0.0); urgency = low
+
+Abstract:
+	add 1 more dely for reliable power off (changjunk@kang.us.megatrends.com)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2020-08-21T17:34:25-04:00
+
+Package: libipmipdk (13.4.0.0.0); urgency = high
+
+Abstract:
+	Fix the GPIO interrupt is not workable (robertlin@ami.com.tw)
+
+Files Modified: data/Makefile, data/PDKInt.c
+
+--Submitter: ivanlee (ivanlee)() 2020-08-06T03:17:32-04:00
+
+Package: libipmipdk (13.3.0.0.0); urgency = low
+
+Abstract:
+	fix turning off power supply on boot (changjunk@kang.us.megatrends.com)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2020-07-30T16:26:46-04:00
+
+Package: libipmipdk (13.2.0.0.0); urgency = low
+
+Abstract:
+	Added fix to return proper error code while gettig FRU data of length 0 (gouravkumarg@amiindia.co.in)
+
+Files Modified: data/PDKFRU.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2020-07-21T14:22:52-04:00
+
+Package: libipmipdk (13.1.0.0.0); urgency = high
+
+Abstract:
+	Add Telco feature support for AST2600 (robertlin@ami.com.tw)
+
+Files Modified: data/PDKHW.c
+
+--Submitter: Senguttuvan M (senguttuvanm)() 2020-06-29T14:54:08-04:00
+
+Package: libipmipdk (13.0.0.0.0); urgency = low
+
+Abstract:
+	Added PDK packages for AST2600EVB (prakashs@ami.com)
+
+Files Added: data/Makefile, data/PDKAlert.c, data/PDKEEPROM.c, data/PDKFRU.c, data/PDKHW.c, data/PDKHooks.c, data/PDKInt.c, data/PDKLED.c, data/PDKSDR.c, data/PDKSEL.c, data/PDKSensor.c, spx/CHANGELOG, spx/FILES, spx/INFO, spx/LICENSES/LICENSE.AMI, spx/PACKAGES.D/libipmipdk/DATA/keep.folder, spx/PACKAGES.D/libipmipdk/SCRIPTS/dev-install.py, spx/RULES.py
+
+--Submitter: Winston Thangapandian (winstont)() 2020-04-20T16:07:03-04:00
+
+Package:libipmipdk (1.0.0.0.0);urgency=new
+
+Abstract:
+	This package contains the PDK Related Stuffs for AST2600EVB Platform
+
+--Submitter: Prakash Shanmugakani (prakashs@ami.com) Wed, 15 Apr 2020 18:29:11 -0400
+

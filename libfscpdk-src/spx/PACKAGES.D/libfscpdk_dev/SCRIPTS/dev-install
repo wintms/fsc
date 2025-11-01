@@ -1,0 +1,7 @@
+# Install Script
+
+build-install:
+    MKDIR_CLEAN %SPXINC/fscpdk
+    COPY_FILE ./fsc.h %SPXINC/fscpdk
+
+debug-install:

@@ -1,0 +1,38 @@
+Source : libipmipdk
+Version :   13.41.0.0.0
+SPX-Version : 4.0
+SPX-Format : 2.0
+Owner : AMI
+Maintainer : Prakash Shanmugakani (prakashs@ami.com)
+License : AMI
+Source-Location : AMI
+Source-Version : 13.0.0.0.0
+Builds : libipmipdk
+Build-Depends : Crosscc, global_dev, gpio, ipmi_dev, ipmipdk_dev, libdbgout_dev, libdynamicdrv, libdynamicdrv_dev, libfeaturedefine_dev, libflash_dev, libgpio_dev, libipmihalapi_dev, libmmap_dev, libsmtp_dev, libunix_dev, oempdk_dev, rules, libtlv_dev
+Customization-Type : PDK
+Architecture : ARM
+SOC : AST2600
+PLATFORM : AST2600EVB
+OEM : AMI
+Urgency :   high
+Description : This package contains the PDK Related Stuffs for AST2600EVB Platform
+.
+
+#---------------------------------------------------------------------------
+# Binary Packages follows
+# Binary package takes the following fields from source pacakage:
+# Version, SPX-Version, SPX-Format, Owner, Maintainer,License,
+# Architecture,SOC,BOARD,OEM,Urgency
+# Provides,Depends,Required ?
+# ---------------------------------------------------------------------------
+
+Package : libipmipdk
+Config-Tag : IPMI PDK Library for AST2600EVB Platform(AMI OEM Version)
+Section : lib
+Group : PLATFORM
+Essential : NO
+Required : global_dev, ipmi_dev, ipmipdk_dev, libdbgout, libdynamicdrv, libfeaturedefine, libflash, libgpio, libipmihalapi, libmmap, libsmtp, libunix, oempdk_dev, libtlv_dev
+Provides : IPMI_PDK
+Description : This package contains IPMI PDK Hooks Library for AST2600EVB (AMI OEM Version)
+.
+

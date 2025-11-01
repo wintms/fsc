@@ -1,0 +1,41 @@
+Source : libfscpdk
+Version : 13.0.0.0.0
+SPX-Version : 4.0
+SPX-Format : 2.0
+Owner : CLS
+Maintainer : Winter Chen (wintchen@celestica.com)
+License : AMI
+Source-Location : AMI
+Source-Version : 1.0.0
+Builds : libfscpdk, libfscpdk_dev
+Build-Depends : Crosscc, global_dev, ipmi_dev, ipmipdk_dev, libdbgout_dev, libipmihalapi_dev, libunix_dev, oempdk_dev, rules, libcJSON_clib_dev, libfeaturedefine_dev
+Customization-Type : PDK
+Architecture : ALL
+Urgency : high
+Description : This package contains thermal management related funcs.
+.
+
+#---------------------------------------------------------------------------
+# Binary Packages follows
+# Binary package takes the following fields from source pacakage:
+# Version, SPX-Version, SPX-Format, Owner, Maintainer,License,
+# Architecture,SOC,BOARD,OEM,Urgency
+# Provides,Depends,Required ?
+# ---------------------------------------------------------------------------
+
+Package : libfscpdk
+Config-Tag : Z9964 FSC Library Support
+Section : lib
+Group : LIBRARY
+Essential : NO
+Required : libunix, libcJSON_clib, libfeaturedefine, libdbgout, libfscpdk_dev
+Description : This package contains thermal management related functions for the Z9964 platforms.
+.
+
+Package : libfscpdk_dev
+Section : dev
+Group : DEVEL
+Essential : NO
+Description : This contains headers for Fan speed control library.
+.
+
