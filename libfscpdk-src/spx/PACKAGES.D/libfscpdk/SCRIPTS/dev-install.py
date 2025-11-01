@@ -37,13 +37,30 @@ def build_install():
     if retval != 0:
         return retval
 
-    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/"+"fsc_z9964f_b2f.json", IMAGETREE+"/conf/")
-    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/"+"fsc_z9964f_f2b.json", IMAGETREE+"/conf/")
-    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/"+"fsc_z9964fl.json", IMAGETREE+"/conf/")
+    # Create FSC configuration directory
+    retval = Py_MkdirClean(IMAGETREE+"/conf/fsc")
+    if retval != 0:
+        return retval
 
-    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/"+"fsc_z9964f_b2f.json", IMAGETREE+"/etc/defconfig/")
-    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/"+"fsc_z9964f_f2b.json", IMAGETREE+"/etc/defconfig/")
-    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/"+"fsc_z9964fl.json", IMAGETREE+"/etc/defconfig/")
+    # Install all FSC configuration files to /conf/fsc/
+    config_files = [
+        "fsc_z9964f_b2f.json",
+        "fsc_z9964f_f2b.json", 
+        "fsc_z9964fl.json",
+        "fsc_z9964f_b2f_ambient.json",
+        "fsc_polynomial_example.json",
+        "fsc_b2f_polynomial_calibration.json"
+    ]
+    
+    for config_file in config_files:
+        retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+config_file, IMAGETREE+"/conf/fsc/")
+        if retval != 0:
+            return retval
+
+    # Install default configuration files to /etc/defconfig/
+    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+"fsc_z9964f_b2f.json", IMAGETREE+"/etc/defconfig/")
+    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+"fsc_z9964f_f2b.json", IMAGETREE+"/etc/defconfig/")
+    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+"fsc_z9964fl.json", IMAGETREE+"/etc/defconfig/")
     return 0
 #-------------------------------------------------------------------------------------------------------
 #				Rules for Debug Install

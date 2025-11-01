@@ -10,8 +10,8 @@
 #define     FSCPRINT(fmt,...)
 #endif
 
-#define     FSC_CONF_B2F_FILE    "/conf/fsc_z9964f_b2f.json"
-#define     FSC_CONF_F2B_FILE    "/conf/fsc_z9964f_f2b.json"
-#define     FSC_CONF_LIQUID_FILE "/conf/fsc_z9964fl.json"
+#define     FSC_CONF_B2F_FILE    "/conf/fsc/fsc_z9964f_b2f.json"
+#define     FSC_CONF_F2B_FILE    "/conf/fsc/fsc_z9964f_f2b.json"
+#define     FSC_CONF_LIQUID_FILE "/conf/fsc/fsc_z9964fl.json"
 
 #endif // FSC_UTILS_H
