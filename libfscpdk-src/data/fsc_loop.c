@@ -192,9 +192,9 @@ int FanControlLoop(int BMCInst)
     }
 
     // overwrite verbose by oem command
-    if(g_OEMDebugArray[OEM_DEBUG_Item_FSC] > verbose)
+    if(g_OEMDebugArray[OEM_DEBUG_Item_FSC])
     {
-        verbose = g_OEMDebugArray[OEM_DEBUG_Item_FSC];
+        verbose = 3;
     }
 
     FSCUpdateOutputPWM(&pwm, verbose, BMCInst);

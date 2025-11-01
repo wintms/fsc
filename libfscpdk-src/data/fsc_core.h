@@ -75,7 +75,6 @@ typedef struct
 
 extern FSCTempSensor pFSCTempSensorInfo[FSC_SENSOR_CNT_MAX];
 
-extern int FSCGetCoreVersion( float *version, int BMCInst );
 extern int FSCGetPWMValue( INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst );
 
 

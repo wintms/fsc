@@ -301,7 +301,7 @@ int ParseSystemInfoFromJson(char *filename, FSC_JSON_SYSTEM_INFO *pFscSystemInfo
 
     ret = 0;
 
-    if(g_OEMDebugArray[OEM_DEBUG_Item_FSC] > 1 || verbose > 1)
+    if(verbose > 1)
     {
         FSCPRINT(" > system_info: \n");
         FSCPRINT("  >> ChassisFanMaxNum          : %d\n", pFscSystemInfo->ChassisFanMaxNum);
@@ -503,7 +503,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
 
     ret = 0;
 
-    if(g_OEMDebugArray[OEM_DEBUG_Item_FSC] > 1 || verbose > 1)
+    if(verbose > 1)
     {
         FSCPRINT(" > profile_info: \n");
         FSCPRINT("  >> TotalProfileNum           : %d\n", pFscProfileInfo->TotalProfileNum);
