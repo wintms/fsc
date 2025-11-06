@@ -8,7 +8,7 @@ DEBUG = n
 #------------------------------------------------------------------------------
 
 #---------------------- Change according to your files ------------------------
-LIBRARY_NAME = libfscpdk
+LIBRARY_NAME = libthermalmgr_dell
 SRC = fsc_loop.c fsc_parser.c fsc_core.c
 
 CFLAGS += -I${SPXINC}/global

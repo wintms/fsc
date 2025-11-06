@@ -3,7 +3,6 @@
 
 #include "IPMIConf.h"
 #include "SensorAPI.h"
-#include "OEMMisc.h"
 #include "OEMFAN.h"
 #include "OEMDBG.h"
 #include "fsc.h"
@@ -26,29 +25,15 @@ static int FSCInitialize(INT8U *verbose)
     char json_path[32] = {0};
 
     // Determine which profile to use
-    int chassis_type = OEM_GetChassisType();
-    int chassis_airflow = OEM_GetChassisAirFlow();
+    int system_airflow = OEM_GetSystemAirflow();
 
-    if (CHASSIS_Z9964F == chassis_type)
+    if (AIRFLOW_F2B == system_airflow)
     {
-        if (AIRFLOW_F2B == chassis_airflow)
-        {
-            snprintf(json_path, sizeof(json_path), "%s", FSC_CONF_F2B_FILE);
-        }
-        else if (AIRFLOW_B2F == chassis_airflow)
-        {
-            snprintf(json_path, sizeof(json_path), "%s", FSC_CONF_B2F_FILE);
-        }
+        snprintf(json_path, sizeof(json_path), "%s", FSC_CONF_F2B_FILE);
     }
-    else if (CHASSIS_Z9964FL == chassis_type)
+    else
     {
-        snprintf(json_path, sizeof(json_path), "%s", FSC_CONF_LIQUID_FILE);
-    }
-
-    if ('\0' == json_path[0])
-    {
-        printf("FSC: Invalid chassis type %d and airflow %d.\n", chassis_type, chassis_airflow);
-        return -1;
+        snprintf(json_path, sizeof(json_path), "%s", FSC_CONF_B2F_FILE);
     }
 
     TINFO("Fan speed control configuration loaded: %s", json_path);
@@ -132,28 +117,20 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
                 pFSCTempSensorInfo[i].fscparam.pidparam.SetPoint = g_FscProfileInfo.ProfileInfo[i].PIDParameter.SetPoint; 
                 break;
 
-            case FSC_CTL_LINEAR:
-                pFSCTempSensorInfo[i].fscparam.linearparam.TempMin = g_FscProfileInfo.ProfileInfo[i].LinearParameter.TempMin;
-                pFSCTempSensorInfo[i].fscparam.linearparam.TempMax = g_FscProfileInfo.ProfileInfo[i].LinearParameter.TempMax;
-                pFSCTempSensorInfo[i].fscparam.linearparam.PwmMin = g_FscProfileInfo.ProfileInfo[i].LinearParameter.PwmMin;
-                pFSCTempSensorInfo[i].fscparam.linearparam.PwmMax = g_FscProfileInfo.ProfileInfo[i].LinearParameter.PwmMax;
-                pFSCTempSensorInfo[i].fscparam.linearparam.FallingHyst = g_FscProfileInfo.ProfileInfo[i].LinearParameter.FallingHyst;
-                break;
-
-            case FSC_CTL_AMBIENT_BASE:
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.CurveType = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.CurveType;
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.LoadScenario = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.LoadScenario;
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.CoeffCount = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.CoeffCount;
-                memcpy(pFSCTempSensorInfo[i].fscparam.ambientbaseparam.Coefficients, 
-                       g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.Coefficients, 
-                       sizeof(float) * MAX_POLYNOMIAL_COEFFS);
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.PointCount = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.PointCount;
+            case FSC_CTL_POLYNOMIAL:
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.CurveType = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.CurveType;
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.LoadScenario = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.LoadScenario;
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.CoeffCount = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.CoeffCount;
+                memcpy(pFSCTempSensorInfo[i].fscparam.ambientbaseparam.Coefficients,
+                    g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.Coefficients,
+                    sizeof(float) * MAX_POLYNOMIAL_COEFFS);
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.PointCount = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.PointCount;
                 memcpy(pFSCTempSensorInfo[i].fscparam.ambientbaseparam.PiecewisePoints, 
-                       g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.PiecewisePoints, 
-                       sizeof(g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.PiecewisePoints));
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.FallingHyst = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.FallingHyst;
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.MaxRisingRate = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.MaxRisingRate;
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.MaxFallingRate = g_FscProfileInfo.ProfileInfo[i].AmbientBaseParameter.MaxFallingRate;
+                       g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.PiecewisePoints,
+                       sizeof(g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.PiecewisePoints));
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.FallingHyst = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.FallingHyst;
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.MaxRisingRate = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.MaxRisingRate;
+                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.MaxFallingRate = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.MaxFallingRate;
                 break;
 
             default:
@@ -194,17 +171,16 @@ int FanControlLoop(int BMCInst)
     static bool init_flag = false;
     INT8U pwm = 0;
     INT8U verbose = 0;
-    int i = 0;
 
     if (!init_flag)
     {
         if (0 != FSCInitialize(&verbose))
         {
-            printf("FSC: Initialization failed. Fan control will not run.\n");
+            init_flag = true;
+            TCRIT("FSC: Initialization failed. Fan control will not run.\n");
             return -1;
         }
         TINFO("Fan speed control strategy started (%s)...", g_FscSystemInfo.FSCVersion);
-        init_flag = true;
     }
 
     // overwrite verbose by oem command
@@ -216,10 +192,7 @@ int FanControlLoop(int BMCInst)
     FSCUpdateOutputPWM(&pwm, verbose, BMCInst);
 
     // Set the calculated PWM to all chassis fans
-    for (i = 0; i < g_FscSystemInfo.ChassisFanUsedNum; i++)
-    {
-        OEM_SetChassisFanPWM(i, pwm);
-    }
+    OEM_SetAllFanTraysPWM(pwm);
 
     return 0;
 }

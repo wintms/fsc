@@ -4,13 +4,13 @@
 #include "Types.h"
 #include "cJSON.h"
 #include "OEMDBG.h"
+#include "OEMFAN.h"
 #include "fsc_parser.h"
 #include "fsc_utils.h"
 #include "fsc_core.h"
 
 FSC_JSON_SYSTEM_INFO            g_FscSystemInfo;
 FSC_JSON_ALL_PROFILES_INFO      g_FscProfileInfo;
-FSCAmbientCalibration           g_AmbientCalibration;
 
 /**
  * @fn ReadFileToString
@@ -260,7 +260,7 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
             FSCPRINT("  >> PointCount                : %d\n", pAmbientCalibration->PointCount);
             for(i = 0; i < pAmbientCalibration->PointCount; i++)
             {
-                FSCPRINT("  >> Point[%d]: PWM=%f, DeltaT=%f\n", i, 
+                FSCPRINT("  >> Point[%d]: PWM=%d, DeltaT=%f\n", i,
                         pAmbientCalibration->PiecewisePoints[i].pwm,
                         pAmbientCalibration->PiecewisePoints[i].delta_temp);
             }
@@ -568,47 +568,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
             goto END;
         }
 
-        if(strcmp(cString, CJSON_ProfileType_Linear) == 0)
-        {
-            pFscProfileInfo->ProfileInfo[i].ProfileType = FSC_CTL_LINEAR;
-            pFscProfileInfo->TotalLinearProfileNum++;
-
-            if(ConvertcJSONToValue(pProfileItemInfo, "TempMin", &dTmp))
-            {
-                printf("fsc_parser: linear: get TempMin error\n");
-                goto END;
-            }
-            pFscProfileInfo->ProfileInfo[i].LinearParameter.TempMin = dTmp;
-            
-            if(ConvertcJSONToValue(pProfileItemInfo, "TempMax", &dTmp))
-            {
-                printf("fsc_parser: linear: get TempMax error\n");
-                goto END;
-            }
-            pFscProfileInfo->ProfileInfo[i].LinearParameter.TempMax = dTmp;
-
-            if(ConvertcJSONToValue(pProfileItemInfo, "PwmMin", &dTmp))
-            {
-                printf("fsc_parser: linear: get PwmMin error\n");
-                goto END;
-            }
-            pFscProfileInfo->ProfileInfo[i].LinearParameter.PwmMin = dTmp;
-
-            if(ConvertcJSONToValue(pProfileItemInfo, "PwmMax", &dTmp))
-            {
-                printf("fsc_parser: linear: get PwmMax error\n");
-                goto END;
-            }
-            pFscProfileInfo->ProfileInfo[i].LinearParameter.PwmMax = dTmp;
-
-            if(ConvertcJSONToValue(pProfileItemInfo, "FallingHyst", &dTmp))
-            {
-                printf("fsc_parser: linear: get FallingHyst error\n");
-                goto END;
-            }
-            pFscProfileInfo->ProfileInfo[i].LinearParameter.FallingHyst = dTmp;
-        }
-        else if(strcmp(cString, CJSON_ProfileType_PID) == 0)
+        if(strcmp(cString, CJSON_ProfileType_PID) == 0)
         {
             pFscProfileInfo->ProfileInfo[i].ProfileType = FSC_CTL_PID;
             pFscProfileInfo->TotalPIDProfileNum++;
@@ -650,30 +610,30 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
         }
         else if(strcmp(cString, CJSON_ProfileType_AmbientBase) == 0)
         {
-            pFscProfileInfo->ProfileInfo[i].ProfileType = FSC_CTL_AMBIENT_BASE;
+            pFscProfileInfo->ProfileInfo[i].ProfileType = FSC_CTL_POLYNOMIAL;
 
             if(ConvertcJSONToValue(pProfileItemInfo, "curve_type", &dTmp))
             {
                 printf("fsc_parser: ambient_base: get curve_type error\n");
                 goto END;
             }
-            pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CurveType = (INT8U) dTmp;
+            pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CurveType = (INT8U) dTmp;
 
             if(ConvertcJSONToValue(pProfileItemInfo, "load_scenario", &dTmp))
             {
                 printf("fsc_parser: ambient_base: get load_scenario error\n");
                 goto END;
             }
-            pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.LoadScenario = (INT8U) dTmp;
+            pFscProfileInfo->ProfileInfo[i].PolynomialParameter.LoadScenario = (INT8U) dTmp;
 
-            if(pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
+            if(pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
             {
                 if(ConvertcJSONToValue(pProfileItemInfo, "coeff_count", &dTmp))
                 {
                     printf("fsc_parser: ambient_base: get coeff_count error\n");
                     goto END;
                 }
-                pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CoeffCount = (INT8U) dTmp;
+                pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CoeffCount = (INT8U) dTmp;
 
                 // Parse coefficients array
                 cJSON *pCoeffsArray = cJSON_GetObjectItem(pProfileItemInfo, "coefficients");
@@ -684,7 +644,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
                 }
 
                 int j;
-                for(j = 0; j < pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CoeffCount && j < MAX_POLYNOMIAL_COEFFS; j++)
+                for(j = 0; j < pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CoeffCount && j < MAX_POLYNOMIAL_COEFFS; j++)
                 {
                     cJSON *pCoeffItem = cJSON_GetArrayItem(pCoeffsArray, j);
                     if(pCoeffItem == NULL)
@@ -692,17 +652,17 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
                         printf("fsc_parser: ambient_base: get coefficient[%d] error\n", j);
                         goto END;
                     }
-                    pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.Coefficients[j] = (float)cJSON_GetNumberValue(pCoeffItem);
+                    pFscProfileInfo->ProfileInfo[i].PolynomialParameter.Coefficients[j] = (float)cJSON_GetNumberValue(pCoeffItem);
                 }
             }
-            else if(pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CurveType == FSC_AMBIENT_CAL_PIECEWISE)
+            else if(pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CurveType == FSC_AMBIENT_CAL_PIECEWISE)
             {
                 if(ConvertcJSONToValue(pProfileItemInfo, "point_count", &dTmp))
                 {
                     printf("fsc_parser: ambient_base: get point_count error\n");
                     goto END;
                 }
-                pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.PointCount = (INT8U) dTmp;
+                pFscProfileInfo->ProfileInfo[i].PolynomialParameter.PointCount = (INT8U) dTmp;
 
                 cJSON *pPointsArray = cJSON_GetObjectItem(pProfileItemInfo, "piecewise_points");
                 if(pPointsArray == NULL)
@@ -712,7 +672,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
                 }
 
                 int j;
-                for(j = 0; j < pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.PointCount && j < MAX_PIECEWISE_POINTS; j++)
+                for(j = 0; j < pFscProfileInfo->ProfileInfo[i].PolynomialParameter.PointCount && j < MAX_PIECEWISE_POINTS; j++)
                 {
                     cJSON *pPointItem = cJSON_GetArrayItem(pPointsArray, j);
                     if(pPointItem == NULL)
@@ -726,14 +686,14 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
                         printf("fsc_parser: ambient_base: get temp for point[%d] error\n", j);
                         goto END;
                     }
-                    pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.PiecewisePoints[j].temp = (float) dTmp;
+                    pFscProfileInfo->ProfileInfo[i].PolynomialParameter.PiecewisePoints[j].temp = (float) dTmp;
 
                     if(ConvertcJSONToValue(pPointItem, "pwm", &dTmp))
                     {
                         printf("fsc_parser: ambient_base: get pwm for point[%d] error\n", j);
                         goto END;
                     }
-                    pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.PiecewisePoints[j].pwm = (float) dTmp;
+                    pFscProfileInfo->ProfileInfo[i].PolynomialParameter.PiecewisePoints[j].pwm = (float) dTmp;
                 }
             }
 
@@ -742,21 +702,21 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
                 printf("fsc_parser: ambient_base: get falling_hyst error\n");
                 goto END;
             }
-            pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.FallingHyst = (float) dTmp;
+            pFscProfileInfo->ProfileInfo[i].PolynomialParameter.FallingHyst = (float) dTmp;
 
             if(ConvertcJSONToValue(pProfileItemInfo, "max_rising_rate", &dTmp))
             {
                 printf("fsc_parser: ambient_base: get max_rising_rate error\n");
                 goto END;
             }
-            pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.MaxRisingRate = (float) dTmp;
+            pFscProfileInfo->ProfileInfo[i].PolynomialParameter.MaxRisingRate = (INT8U) dTmp;
 
             if(ConvertcJSONToValue(pProfileItemInfo, "max_falling_rate", &dTmp))
             {
                 printf("fsc_parser: ambient_base: get max_falling_rate error\n");
                 goto END;
             }
-            pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.MaxFallingRate = (float) dTmp;
+            pFscProfileInfo->ProfileInfo[i].PolynomialParameter.MaxFallingRate = (INT8U) dTmp;
         }
     }
 
@@ -787,42 +747,33 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
                 FSCPRINT("    >>>> Ki                    : %f\n", pFscProfileInfo->ProfileInfo[i].PIDParameter.Ki);
                 FSCPRINT("    >>>> Kd                    : %f\n", pFscProfileInfo->ProfileInfo[i].PIDParameter.Kd);
             }
-            else if(pFscProfileInfo->ProfileInfo[i].ProfileType == FSC_CTL_LINEAR)
+            else if(pFscProfileInfo->ProfileInfo[i].ProfileType == FSC_CTL_POLYNOMIAL)
             {
                 FSCPRINT("   >>> ProfileParameter: \n");
-                FSCPRINT("    >>>> TempMin               : %d\n", pFscProfileInfo->ProfileInfo[i].LinearParameter.TempMin);
-                FSCPRINT("    >>>> TempMax              : %d\n", pFscProfileInfo->ProfileInfo[i].LinearParameter.TempMax);
-                FSCPRINT("    >>>> PwmMin                : %d\n", pFscProfileInfo->ProfileInfo[i].LinearParameter.PwmMin);
-                FSCPRINT("    >>>> PwmMax                : %d\n", pFscProfileInfo->ProfileInfo[i].LinearParameter.PwmMax);
-                FSCPRINT("    >>>> FallingHyst           : %d\n", pFscProfileInfo->ProfileInfo[i].LinearParameter.FallingHyst);
-            }
-            else if(pFscProfileInfo->ProfileInfo[i].ProfileType == FSC_CTL_AMBIENT_BASE)
-            {
-                FSCPRINT("   >>> ProfileParameter: \n");
-                FSCPRINT("    >>>> CurveType             : %d\n", pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CurveType);
-                FSCPRINT("    >>>> LoadScenario          : %d\n", pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.LoadScenario);
-                FSCPRINT("    >>>> FallingHyst           : %f\n", pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.FallingHyst);
-                FSCPRINT("    >>>> MaxRisingRate         : %f\n", pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.MaxRisingRate);
-                FSCPRINT("    >>>> MaxFallingRate        : %f\n", pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.MaxFallingRate);
+                FSCPRINT("    >>>> CurveType             : %d\n", pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CurveType);
+                FSCPRINT("    >>>> LoadScenario          : %d\n", pFscProfileInfo->ProfileInfo[i].PolynomialParameter.LoadScenario);
+                FSCPRINT("    >>>> FallingHyst           : %f\n", pFscProfileInfo->ProfileInfo[i].PolynomialParameter.FallingHyst);
+                FSCPRINT("    >>>> MaxRisingRate         : %d\n", pFscProfileInfo->ProfileInfo[i].PolynomialParameter.MaxRisingRate);
+                FSCPRINT("    >>>> MaxFallingRate        : %d\n", pFscProfileInfo->ProfileInfo[i].PolynomialParameter.MaxFallingRate);
                 
-                if(pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
+                if(pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
                 {
-                    FSCPRINT("    >>>> CoeffCount            : %d\n", pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CoeffCount);
+                    FSCPRINT("    >>>> CoeffCount            : %d\n", pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CoeffCount);
                     int j;
-                    for(j = 0; j < pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CoeffCount; j++)
+                    for(j = 0; j < pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CoeffCount; j++)
                     {
-                        FSCPRINT("    >>>> Coefficient[%d]       : %f\n", j, pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.Coefficients[j]);
+                        FSCPRINT("    >>>> Coefficient[%d]       : %f\n", j, pFscProfileInfo->ProfileInfo[i].PolynomialParameter.Coefficients[j]);
                     }
                 }
-                else if(pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.CurveType == FSC_AMBIENT_CAL_PIECEWISE)
+                else if(pFscProfileInfo->ProfileInfo[i].PolynomialParameter.CurveType == FSC_AMBIENT_CAL_PIECEWISE)
                 {
-                    FSCPRINT("    >>>> PointCount            : %d\n", pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.PointCount);
+                    FSCPRINT("    >>>> PointCount            : %d\n", pFscProfileInfo->ProfileInfo[i].PolynomialParameter.PointCount);
                     int j;
-                    for(j = 0; j < pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.PointCount; j++)
+                    for(j = 0; j < pFscProfileInfo->ProfileInfo[i].PolynomialParameter.PointCount; j++)
                     {
-                        FSCPRINT("    >>>> Point[%d]: Temp=%f, PWM=%f\n", j, 
-                                pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.PiecewisePoints[j].temp,
-                                pFscProfileInfo->ProfileInfo[i].AmbientBaseParameter.PiecewisePoints[j].pwm);
+                        FSCPRINT("    >>>> Point[%d]: Temp=%d, PWM=%d\n", j, 
+                                pFscProfileInfo->ProfileInfo[i].PolynomialParameter.PiecewisePoints[j].temp,
+                                pFscProfileInfo->ProfileInfo[i].PolynomialParameter.PiecewisePoints[j].pwm);
                     }
                 }
             }

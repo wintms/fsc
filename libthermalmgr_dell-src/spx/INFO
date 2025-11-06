@@ -1,4 +1,4 @@
-Source : libfscpdk
+Source : libthermalmgr_dell
 Version : 13.0.0.0.0
 SPX-Version : 4.0
 SPX-Format : 2.0
@@ -7,7 +7,7 @@ Maintainer : Winter Chen (wintchen@celestica.com)
 License : AMI
 Source-Location : AMI
 Source-Version : 1.0.0
-Builds : libfscpdk, libfscpdk_dev
+Builds : libthermalmgr_dell, libthermalmgr_dell_dev
 Build-Depends : Crosscc, global_dev, ipmi_dev, ipmipdk_dev, libdbgout_dev, libipmihalapi_dev, libunix_dev, oempdk_dev, rules, libcJSON_clib_dev, libfeaturedefine_dev
 Customization-Type : PDK
 Architecture : ALL
@@ -23,19 +23,19 @@ Description : This package contains thermal management related funcs.
 # Provides,Depends,Required ?
 # ---------------------------------------------------------------------------
 
-Package : libfscpdk
-Config-Tag : Z9964 FSC Library Support
+Package : libthermalmgr_dell
+Config-Tag : Dell Thermal Management Support
 Section : lib
 Group : LIBRARY
 Essential : NO
-Required : libunix, libcJSON_clib, libfeaturedefine, libdbgout, libfscpdk_dev
+Required : libunix, libcJSON_clib, libfeaturedefine, libdbgout, libthermalmgr_dell_dev
 Description : This package contains thermal management related functions for the Z9964 platforms.
 .
 
-Package : libfscpdk_dev
+Package : libthermalmgr_dell_dev
 Section : dev
 Group : DEVEL
 Essential : NO
-Description : This contains headers for Fan speed control library.
+Description : This contains headers for Dell closed loop thermal management library.
 .
 

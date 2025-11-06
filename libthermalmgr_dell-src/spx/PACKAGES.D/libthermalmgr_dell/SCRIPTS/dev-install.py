@@ -17,7 +17,7 @@ def build_install():
     PKG_AUX=PrjVars["PKG_AUX"]
     SPXLIB=PrjVars["SPXLIB"]
 
-    retval = Py_MkdirClean(SPXLIB+"/fscpdk")
+    retval = Py_MkdirClean(SPXLIB+"/thermalmgr_dell")
     if retval != 0:
         return retval
 
@@ -25,15 +25,15 @@ def build_install():
     if retval != 0:
         return retval
 
-    retval = Py_AddLiblinks(IMAGETREE+"/usr/local/lib/","libfscpdk.so."+PKG_MAJOR+"."+PKG_MINOR+"."+PKG_AUX)
+    retval = Py_AddLiblinks(IMAGETREE+"/usr/local/lib/","libthermalmgr_dell.so."+PKG_MAJOR+"."+PKG_MINOR+"."+PKG_AUX)
     if retval != 0:
         return retval
 
-    retval = Py_CopyFile("./libfscpdk.so."+PKG_MAJOR+"."+PKG_MINOR+"."+PKG_AUX,SPXLIB+"/fscpdk/")
+    retval = Py_CopyFile("./libthermalmgr_dell.so."+PKG_MAJOR+"."+PKG_MINOR+"."+PKG_AUX,SPXLIB+"/thermalmgr_dell/")
     if retval != 0:
         return retval
 
-    retval = Py_AddLiblinks(SPXLIB+"/fscpdk","libfscpdk.so."+PKG_MAJOR+"."+PKG_MINOR+"."+PKG_AUX)
+    retval = Py_AddLiblinks(SPXLIB+"/thermalmgr_dell","libthermalmgr_dell.so."+PKG_MAJOR+"."+PKG_MINOR+"."+PKG_AUX)
     if retval != 0:
         return retval
 

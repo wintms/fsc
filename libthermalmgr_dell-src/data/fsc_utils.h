@@ -5,7 +5,7 @@
 
 #define     FSC_DEBUG
 #ifdef      FSC_DEBUG
-#define     FSCPRINT(fmt,...) printf("[%15s-%30s:%04d] "fmt,__FILE__,__func__,__LINE__, ##__VA_ARGS__)
+#define     FSCPRINT(fmt,...) printf((const char*)"[%15s-%30s:%04d] "fmt,__FILE__,__func__,__LINE__, ##__VA_ARGS__)
 #else
 #define     FSCPRINT(fmt,...)
 #endif

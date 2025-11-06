@@ -42,16 +42,16 @@ def build_source():
 #-------------------------------------------------------------------------------------------------------
 #			 Rules for Creating (Packing) Binary Package
 #-------------------------------------------------------------------------------------------------------
-# Rules to create libfscpdk package
-def build_package_libfscpdk():
+# Rules to create libthermalmgr_dell package
+def build_package_libthermalmgr_dell():
     TEMPDIR = PrjVars["TEMPDIR"]
     PACKAGE = PrjVars["PACKAGE"]
     BUILD = PrjVars["BUILD"]
     IMAGETREE=PrjVars["IMAGE_TREE"]
     actualpath = os.getcwd()
-    return Py_PackSPX("./",PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/libfscpdk.so."+PrjVars["PKG_MAJOR"]+"."+PrjVars["PKG_MINOR"]+"."+PrjVars["PKG_AUX"])
+    return Py_PackSPX("./",PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/libthermalmgr_dell.so."+PrjVars["PKG_MAJOR"]+"."+PrjVars["PKG_MINOR"]+"."+PrjVars["PKG_AUX"])
 
-def build_package_libfscpdk_dev():
+def build_package_libthermalmgr_dell_dev():
     retval=Py_MkdirClean(PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
     if retval != 0:
         return retval
@@ -60,11 +60,11 @@ def build_package_libfscpdk_dev():
     if retval != 0:
         return retval
 
-    retval=Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/libfscpdk.a",PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
+    retval=Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/libthermalmgr_dell.a",PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
     if retval != 0:
         return retval
 
-    retval=Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/libfscpdk.so."+PrjVars["PKG_MAJOR"]+"."+PrjVars["PKG_MINOR"]+"."+PrjVars["PKG_AUX"],PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
+    retval=Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/libthermalmgr_dell.so."+PrjVars["PKG_MAJOR"]+"."+PrjVars["PKG_MINOR"]+"."+PrjVars["PKG_AUX"],PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
     if retval != 0:
         return retval
 

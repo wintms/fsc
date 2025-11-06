@@ -9,13 +9,11 @@
 
 #include "Types.h"
 #include "fsc.h"
-#include "fsc_parser.h"
 
 // FAN control algorithm
 #define FSC_CTL_INVALID         0
 #define FSC_CTL_PID             1
-#define FSC_CTL_LINEAR          2
-#define FSC_CTL_AMBIENT_BASE    3
+#define FSC_CTL_POLYNOMIAL      2 //polynomial
 
 // Ambient calibration algorithm types
 #define FSC_AMBIENT_CAL_POLYNOMIAL  0
@@ -36,10 +34,11 @@
 // Filter dirty data from FSC level
 #define TEMP_READING_RANGE          10
 
-
 // Sensor Scan
 #define SENSOR_SCAN_DISABLE         0
 #define SENSOR_SCAN_ENABLE          1
+
+#define FSC_SENSOR_CNT_MAX  20
 
 
 typedef struct
@@ -88,7 +87,7 @@ typedef struct
     INT8U FallingHyst;                      // Falling hysteresis in degrees C (default 2)
     INT8U MaxRisingRate;                    // Maximum rising rate %/cycle (default 10)
     INT8U MaxFallingRate;                   // Maximum falling rate %/cycle (default 5)
-} PACKED FSCAmbientBase;
+} PACKED FSCPolynomial;
 
 typedef struct
 {
@@ -108,7 +107,7 @@ typedef struct
     union fscparam_t{
         FSCPID pidparam;
         FSCLinear linearparam;
-        FSCAmbientBase ambientbaseparam;
+        FSCPolynomial ambientbaseparam;
     }fscparam;
 
 } PACKED FSCTempSensor;

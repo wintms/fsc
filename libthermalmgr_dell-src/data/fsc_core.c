@@ -103,132 +103,6 @@ int FSCGetPWMValue_PID(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U
 
 
 /*---------------------------------------------------------------------------
-* @fn FSCGetPWMValue_Linear
-*
-* @brief This function is used to get fsc pwm using linear algorithm.
-*---------------------------------------------------------------------------*/
-int FSCGetPWMValue_Linear(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst)
-{
-
-    UN_USED(BMCInst);
-
-    FSCLinear *pLinearInfo = NULL;
-    INT16S CurrentPWM = 0;
-
-    if(PWMValue == NULL || pFSCTempSensorInfo == NULL)
-    {
-        FSCPRINT("pointer can't be NULL \n");
-        return -1;
-    }
-
-    if(pFSCTempSensorInfo->Present == SENSOR_SCAN_DISABLE)
-    {
-        if(verbose > 1)
-        {
-            FSCPRINT(" > Linear - %-20s is disabled \n", pFSCTempSensorInfo->Label);
-        }
-
-        return -1;
-    }
-    
-    pLinearInfo = &(pFSCTempSensorInfo->fscparam.linearparam);
-
-    if(verbose > 1)
-    {
-        FSCPRINT(" > TempMin = %d, TempMax = %d, PwmMin = %d, PwmMax = %d, FallingHyst = %d\n",
-                pLinearInfo->TempMin, pLinearInfo->TempMax, pLinearInfo->PwmMin, pLinearInfo->PwmMax, pLinearInfo->FallingHyst);
-    }
-    
-    // Filter dirty data
-    if(abs(pFSCTempSensorInfo->CurrentTemp - pFSCTempSensorInfo->LastTemp) > TEMP_READING_RANGE)
-    {
-        if(verbose > 1)
-        {
-            FSCPRINT(" > %-20s = %4d, lastTemp = %4d, currentPWM = %02d, lastPWM = %02d - Reading change large than %d, ignore\n",
-                             pFSCTempSensorInfo->Label, (int)pFSCTempSensorInfo->CurrentTemp, (int)pFSCTempSensorInfo->LastTemp,
-                             (int)CurrentPWM, (int)pFSCTempSensorInfo->LastPWM, TEMP_READING_RANGE);
-        }
-
-        pFSCTempSensorInfo->LastTemp = pFSCTempSensorInfo->CurrentTemp;
-        *PWMValue = pFSCTempSensorInfo->LastPWM;
-        CurrentPWM = (INT16S)(*PWMValue);
-
-        if(verbose > 1)
-        {
-            FSCPRINT(" > %-20s = %4d, lastTemp = %4d, currentPWM = %02d, lastPWM = %02d - Errata\n",
-                             pFSCTempSensorInfo->Label, pFSCTempSensorInfo->CurrentTemp, (int)pFSCTempSensorInfo->LastTemp,
-                             (int)CurrentPWM, (int)(pFSCTempSensorInfo->LastPWM));
-        }
-
-        return 0; // treat it as normal.
-    }
-
-    if(pFSCTempSensorInfo->CurrentTemp > pFSCTempSensorInfo->LastTemp)
-    {
-        CurrentPWM = (INT16S)(((pLinearInfo->PwmMax - pLinearInfo->PwmMin) / (pLinearInfo->TempMax - pLinearInfo->TempMin))
-                        * (pFSCTempSensorInfo->CurrentTemp - pLinearInfo->TempMin)
-                        + pLinearInfo->PwmMin);
-        if (CurrentPWM < (INT16S)pFSCTempSensorInfo->LastPWM)
-        {
-            CurrentPWM = (INT16S)pFSCTempSensorInfo->LastPWM;
-        }
-        
-        if(verbose > 1)
-        {
-            FSCPRINT(" > PWM: %d, Temp Rising\n", CurrentPWM);
-        }
-    }
-    else if(pFSCTempSensorInfo->CurrentTemp < pFSCTempSensorInfo->LastTemp) //Temp Declining
-    {
-        CurrentPWM = (INT16S)(((pLinearInfo->PwmMax - pLinearInfo->PwmMin) / (pLinearInfo->TempMax - pLinearInfo->TempMin))
-                        * (pFSCTempSensorInfo->CurrentTemp - pLinearInfo->TempMin + pLinearInfo->FallingHyst)
-                        + pLinearInfo->PwmMin);
-        if (CurrentPWM > (INT16S)pFSCTempSensorInfo->LastPWM)
-        {
-            CurrentPWM = (INT16S)pFSCTempSensorInfo->LastPWM;
-        }
-        
-        if(verbose > 1)
-        {
-            FSCPRINT(" > PWM: %d, Temp Declining\n", CurrentPWM);
-        }
-    }
-    else // Temperature and altitude no change
-    {
-        CurrentPWM = (INT16S)pFSCTempSensorInfo->LastPWM;
-    }
-    
-    if (CurrentPWM < 0)
-        CurrentPWM = (INT16S)pLinearInfo->PwmMin;
-
-    if(verbose > 1)
-    {
-        FSCPRINT(" > %-20s = %4d, lastTemp = %4d, currentPWM = %02d, lastPWM = %02d\n",
-                         pFSCTempSensorInfo->Label, pFSCTempSensorInfo->CurrentTemp, (int)pFSCTempSensorInfo->LastTemp,
-                         (int)CurrentPWM, (int)(pFSCTempSensorInfo->LastPWM));
-    }
-    
-    if(CurrentPWM > (INT16S)pLinearInfo->PwmMax)
-        CurrentPWM = (INT16S)pLinearInfo->PwmMax;
-
-    if(CurrentPWM < (INT16S)pLinearInfo->PwmMin)
-        CurrentPWM = (INT16S)pLinearInfo->PwmMin;
-    
-    if(verbose > 0)
-    {
-        FSCPRINT("%-20s = %4d, currentPWM = %2d\n",
-                         pFSCTempSensorInfo->Label, pFSCTempSensorInfo->CurrentTemp, (INT8U)CurrentPWM);
-    }
-    
-    pFSCTempSensorInfo->LastTemp = pFSCTempSensorInfo->CurrentTemp;
-    pFSCTempSensorInfo->LastPWM = (INT8U)CurrentPWM;
-
-    *PWMValue = (INT8U)CurrentPWM;
-
-    return 0;
-}
-
-/*---------------------------------------------------------------------------
 * @fn FSCGetAmbientTemperature
 *
 * @brief This function converts inlet sensor reading to ambient temperature
@@ -305,15 +179,15 @@ float FSCGetAmbientTemperature(INT16S inlet_temp, INT8U last_pwm, INT8U verbose)
 }
 
 /*---------------------------------------------------------------------------
-* @fn FSCGetPWMValue_AmbientBase
+* @fn FSCGetPWMValue_Polynomial
 *
 * @brief This function calculates PWM using ambient base curve algorithm
 *---------------------------------------------------------------------------*/
-int FSCGetPWMValue_AmbientBase(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst)
+int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst)
 {
     UN_USED(BMCInst);
     
-    FSCAmbientBase *pAmbientBase = NULL;
+    FSCPolynomial *pPolynomial = NULL;
     INT16S CurrentPWM = 0;
     float ambient_temp = 0.0;
     int i;
@@ -328,12 +202,12 @@ int FSCGetPWMValue_AmbientBase(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInf
     {
         if(verbose > 1)
         {
-            FSCPRINT(" > AmbientBase - %-20s is disabled \n", pFSCTempSensorInfo->Label);
+            FSCPRINT(" > Polynomial - %-20s is disabled \n", pFSCTempSensorInfo->Label);
         }
         return -1;
     }
     
-    pAmbientBase = &(pFSCTempSensorInfo->fscparam.ambientbaseparam);
+    pPolynomial = &(pFSCTempSensorInfo->fscparam.ambientbaseparam);
     
     // Convert inlet temperature to ambient temperature using calibration
     ambient_temp = FSCGetAmbientTemperature(pFSCTempSensorInfo->CurrentTemp, 
@@ -355,14 +229,14 @@ int FSCGetPWMValue_AmbientBase(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInf
     }
     
     // Calculate target PWM based on ambient base curve
-    if (pAmbientBase->CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
+    if (pPolynomial->CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
     {
         // Polynomial calculation: PWM = a0 + a1*T + a2*T^2 + a3*T^3
         float temp_power = 1.0;
         float target_pwm = 0.0;
-        for (i = 0; i < pAmbientBase->CoeffCount && i < MAX_POLYNOMIAL_COEFFS; i++)
+        for (i = 0; i < pPolynomial->CoeffCount && i < MAX_POLYNOMIAL_COEFFS; i++)
         {
-            target_pwm += pAmbientBase->Coefficients[i] * temp_power;
+            target_pwm += pPolynomial->Coefficients[i] * temp_power;
             temp_power *= ambient_temp;
         }
         CurrentPWM = (INT16S)target_pwm;
@@ -372,30 +246,30 @@ int FSCGetPWMValue_AmbientBase(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInf
         // Piecewise linear interpolation
         INT8U ambient_temp_int = (INT8U)ambient_temp;
         
-        if (pAmbientBase->PointCount < 2)
+        if (pPolynomial->PointCount < 2)
         {
             CurrentPWM = pFSCTempSensorInfo->LastPWM; // No curve data, keep last PWM
         }
-        else if (ambient_temp_int <= pAmbientBase->PiecewisePoints[0].temp)
+        else if (ambient_temp_int <= pPolynomial->PiecewisePoints[0].temp)
         {
-            CurrentPWM = pAmbientBase->PiecewisePoints[0].pwm;
+            CurrentPWM = pPolynomial->PiecewisePoints[0].pwm;
         }
-        else if (ambient_temp_int >= pAmbientBase->PiecewisePoints[pAmbientBase->PointCount-1].temp)
+        else if (ambient_temp_int >= pPolynomial->PiecewisePoints[pPolynomial->PointCount-1].temp)
         {
-            CurrentPWM = pAmbientBase->PiecewisePoints[pAmbientBase->PointCount-1].pwm;
+            CurrentPWM = pPolynomial->PiecewisePoints[pPolynomial->PointCount-1].pwm;
         }
         else
         {
             // Linear interpolation between two points
-            for (i = 0; i < pAmbientBase->PointCount - 1; i++)
+            for (i = 0; i < pPolynomial->PointCount - 1; i++)
             {
-                if (ambient_temp_int >= pAmbientBase->PiecewisePoints[i].temp && 
-                    ambient_temp_int <= pAmbientBase->PiecewisePoints[i+1].temp)
+                if (ambient_temp_int >= pPolynomial->PiecewisePoints[i].temp && 
+                    ambient_temp_int <= pPolynomial->PiecewisePoints[i+1].temp)
                 {
-                    INT8U t1 = pAmbientBase->PiecewisePoints[i].temp;
-                    INT8U p1 = pAmbientBase->PiecewisePoints[i].pwm;
-                    INT8U t2 = pAmbientBase->PiecewisePoints[i+1].temp;
-                    INT8U p2 = pAmbientBase->PiecewisePoints[i+1].pwm;
+                    INT8U t1 = pPolynomial->PiecewisePoints[i].temp;
+                    INT8U p1 = pPolynomial->PiecewisePoints[i].pwm;
+                    INT8U t2 = pPolynomial->PiecewisePoints[i+1].temp;
+                    INT8U p2 = pPolynomial->PiecewisePoints[i+1].pwm;
                     
                     CurrentPWM = p1 + (p2 - p1) * (ambient_temp_int - t1) / (t2 - t1);
                     break;
@@ -408,16 +282,16 @@ int FSCGetPWMValue_AmbientBase(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInf
     if(ambient_temp < (pFSCTempSensorInfo->LastTemp - g_AmbientCalibration.PiecewisePoints[0].delta_temp))
     {
         // Add falling hysteresis
-        float hyst_ambient = ambient_temp + pAmbientBase->FallingHyst;
+        float hyst_ambient = ambient_temp + pPolynomial->FallingHyst;
         
         // Recalculate PWM with hysteresis
-        if (pAmbientBase->CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
+        if (pPolynomial->CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
         {
             float temp_power = 1.0;
             float target_pwm = 0.0;
-            for (i = 0; i < pAmbientBase->CoeffCount && i < MAX_POLYNOMIAL_COEFFS; i++)
+            for (i = 0; i < pPolynomial->CoeffCount && i < MAX_POLYNOMIAL_COEFFS; i++)
             {
-                target_pwm += pAmbientBase->Coefficients[i] * temp_power;
+                target_pwm += pPolynomial->Coefficients[i] * temp_power;
                 temp_power *= hyst_ambient;
             }
             INT16S hyst_pwm = (INT16S)target_pwm;
@@ -441,12 +315,12 @@ int FSCGetPWMValue_AmbientBase(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInf
     if (pwm_diff > 0)
     {
         // Rising rate limit
-        max_change = pAmbientBase->MaxRisingRate;
+        max_change = pPolynomial->MaxRisingRate;
     }
     else if (pwm_diff < 0)
     {
         // Falling rate limit
-        max_change = pAmbientBase->MaxFallingRate;
+        max_change = pPolynomial->MaxFallingRate;
         pwm_diff = -pwm_diff; // Make positive for comparison
     }
     
@@ -514,22 +388,12 @@ int FSCGetPWMValue(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U ver
 
                 return ret;
 
-            case FSC_CTL_LINEAR:
+            case FSC_CTL_POLYNOMIAL:
 
-                ret = FSCGetPWMValue_Linear(PWMValue, pFSCTempSensorInfo, verbose, BMCInst);
+                ret = FSCGetPWMValue_Polynomial(PWMValue, pFSCTempSensorInfo, verbose, BMCInst);
                 if(verbose > 2)
                 {
-                    FSCPRINT("  >> Get LINEAR PWM ret: %d\n", ret);
-                }
-
-                return ret;
-                
-            case FSC_CTL_AMBIENT_BASE:
-
-                ret = FSCGetPWMValue_AmbientBase(PWMValue, pFSCTempSensorInfo, verbose, BMCInst);
-                if(verbose > 2)
-                {
-                    FSCPRINT("  >> Get AMBIENT_BASE PWM ret: %d\n", ret);
+                    FSCPRINT("  >> Get POLYNOMIAL PWM ret: %d\n", ret);
                 }
 
                 return ret;

@@ -55,7 +55,7 @@
                 "profile_index": 3,
                 "sensor_num": 116,
                 "sensor_name": "SW_U16",
-                "type": "ambient_base",
+                "type": "polynomial",
                 "curve_type": 0,
                 "load_scenario": 0,
                 "coeff_count": 3,

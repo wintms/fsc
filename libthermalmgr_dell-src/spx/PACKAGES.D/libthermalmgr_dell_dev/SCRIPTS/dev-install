@@ -1,0 +1,7 @@
+# Install Script
+
+build-install:
+    MKDIR_CLEAN %SPXINC/thermalmgr_dell
+    COPY_FILE ./fsc.h %SPXINC/thermalmgr_dell
+
+debug-install:
