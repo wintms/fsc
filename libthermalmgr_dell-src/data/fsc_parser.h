@@ -6,7 +6,7 @@
 #include "fsc_core.h"
 
 #define CJSON_ProfileType_PID       "pid"
-#define CJSON_ProfileType_AmbientBase "polynomial"
+#define CJSON_ProfileType_Polynomial "polynomial"
 
 #define CJSON_FSCMode_Auto          "auto"
 #define CJSON_FSCMode_Manual        "manual"
@@ -15,15 +15,6 @@
 
 typedef struct
 {
-    INT8U   ChassisFanMaxNum;
-    INT8U   ChassisFanUsedNum;
-    INT8U   ChassisFanRotorNum;
-    INT8U   ChassisFanRedundantNum;
-    INT8U   PSUFanMaxNum;
-    INT8U   PSUFanUsedNum;
-    INT8U   PSUFanRedundantNum;
-    INT8U   SystemMaxFanAirflowNum;
-    INT8U   SystemFanAirflow;
     INT8U   FSCMode;
     char    FSCVersion[16];
     INT8U   FanMaxPWM;

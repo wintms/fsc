@@ -50,6 +50,13 @@ static int FSCInitialize(INT8U *verbose)
         return -1;
     }
 
+    // Parse ambient calibration if present (safe defaults if missing)
+    if (0 != ParseAmbientCalibrationFromJson(json_path, &g_AmbientCalibration, *verbose))
+    {
+        printf("FSC: Failed to parse 'ambient_calibration' from %s.\n", json_path);
+        // Keep going with defaults set inside parser
+    }
+
     if (0 != ParseFSCProfileFromJson(json_path, &g_FscProfileInfo, *verbose))
     {
         printf("FSC: Failed to parse 'profile_info' from %s.\n", json_path);

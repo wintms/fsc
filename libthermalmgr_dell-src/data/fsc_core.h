@@ -117,7 +117,7 @@ extern FSCAmbientCalibration g_AmbientCalibration;
 
 extern int FSCGetPWMValue( INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst );
 extern float FSCGetAmbientTemperature(INT16S inlet_temp, INT8U last_pwm, INT8U verbose);
-extern int FSCGetPWMValue_AmbientBase(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst);
+extern int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst);
 
 
 #endif // FSC_CORE_H

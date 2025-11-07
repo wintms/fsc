@@ -18,6 +18,76 @@
 FSCTempSensor pFSCTempSensorInfo[FSC_SENSOR_CNT_MAX];
 FSCAmbientCalibration g_AmbientCalibration;
 
+/* -----------------------
+ * Internal helpers
+ * ----------------------- */
+static inline float eval_poly(float base, const float *coeffs, int count)
+{
+    float acc = 0.0f;
+    float power = 1.0f;
+    for (int i = 0; i < count && i < MAX_POLYNOMIAL_COEFFS; i++)
+    {
+        acc += coeffs[i] * power;
+        power *= base;
+    }
+    return acc;
+}
+
+static inline INT16S clamp16(INT16S v, INT16S minv, INT16S maxv)
+{
+    if (v < minv) return minv;
+    if (v > maxv) return maxv;
+    return v;
+}
+
+static inline float ambient_delta_piecewise(const FSCAmbientCalibration *cal, INT8U pwm)
+{
+    if (!cal || cal->PointCount < 1) return 0.0f;
+    if (cal->PointCount == 1) return cal->PiecewisePoints[0].delta_temp;
+
+    if (pwm <= cal->PiecewisePoints[0].pwm)
+        return cal->PiecewisePoints[0].delta_temp;
+    if (pwm >= cal->PiecewisePoints[cal->PointCount - 1].pwm)
+        return cal->PiecewisePoints[cal->PointCount - 1].delta_temp;
+
+    for (int i = 0; i < cal->PointCount - 1; i++)
+    {
+        INT8U x1 = cal->PiecewisePoints[i].pwm;
+        INT8U x2 = cal->PiecewisePoints[i+1].pwm;
+        if (pwm >= x1 && pwm <= x2)
+        {
+            float y1 = cal->PiecewisePoints[i].delta_temp;
+            float y2 = cal->PiecewisePoints[i+1].delta_temp;
+            return y1 + (y2 - y1) * (pwm - x1) / (float)(x2 - x1);
+        }
+    }
+    return 0.0f;
+}
+
+static inline INT16S pwm_piecewise_for_temp(const FSCPolynomial *poly, INT8U temp)
+{
+    if (!poly || poly->PointCount < 1) return 0;
+    if (poly->PointCount == 1) return poly->PiecewisePoints[0].pwm;
+
+    if (temp <= poly->PiecewisePoints[0].temp)
+        return poly->PiecewisePoints[0].pwm;
+    if (temp >= poly->PiecewisePoints[poly->PointCount - 1].temp)
+        return poly->PiecewisePoints[poly->PointCount - 1].pwm;
+
+    for (int i = 0; i < poly->PointCount - 1; i++)
+    {
+        INT8U t1 = poly->PiecewisePoints[i].temp;
+        INT8U t2 = poly->PiecewisePoints[i+1].temp;
+        if (temp >= t1 && temp <= t2)
+        {
+            INT8U p1 = poly->PiecewisePoints[i].pwm;
+            INT8U p2 = poly->PiecewisePoints[i+1].pwm;
+            return (INT16S)(p1 + (p2 - p1) * (temp - t1) / (INT16S)(t2 - t1));
+        }
+    }
+    return 0;
+}
+
 /*---------------------------------------------------------------------------
 * @fn FSCGetPWMValue_PID
 *
@@ -110,19 +180,11 @@ int FSCGetPWMValue_PID(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U
 *---------------------------------------------------------------------------*/
 float FSCGetAmbientTemperature(INT16S inlet_temp, INT8U last_pwm, INT8U verbose)
 {
-    float delta_temp = 0.0;
-    int i;
-    
+    float delta_temp = 0.0f;
+
     if (g_AmbientCalibration.CalType == FSC_AMBIENT_CAL_POLYNOMIAL)
     {
-        // Polynomial calculation: ΔT = a0 + a1*PWM + a2*PWM^2 + a3*PWM^3
-        float pwm_power = 1.0;
-        for (i = 0; i < g_AmbientCalibration.CoeffCount && i < MAX_POLYNOMIAL_COEFFS; i++)
-        {
-            delta_temp += g_AmbientCalibration.Coefficients[i] * pwm_power;
-            pwm_power *= last_pwm;
-        }
-        
+        delta_temp = eval_poly((float)last_pwm, g_AmbientCalibration.Coefficients, g_AmbientCalibration.CoeffCount);
         if (verbose > 1)
         {
             FSCPRINT(" > Ambient Cal (Polynomial): PWM=%d, ΔT=%.2f\n", last_pwm, delta_temp);
@@ -130,44 +192,13 @@ float FSCGetAmbientTemperature(INT16S inlet_temp, INT8U last_pwm, INT8U verbose)
     }
     else if (g_AmbientCalibration.CalType == FSC_AMBIENT_CAL_PIECEWISE)
     {
-        // Piecewise linear interpolation
-        if (g_AmbientCalibration.PointCount < 2)
-        {
-            delta_temp = 0.0; // No calibration data
-        }
-        else if (last_pwm <= g_AmbientCalibration.PiecewisePoints[0].pwm)
-        {
-            delta_temp = g_AmbientCalibration.PiecewisePoints[0].delta_temp;
-        }
-        else if (last_pwm >= g_AmbientCalibration.PiecewisePoints[g_AmbientCalibration.PointCount-1].pwm)
-        {
-            delta_temp = g_AmbientCalibration.PiecewisePoints[g_AmbientCalibration.PointCount-1].delta_temp;
-        }
-        else
-        {
-            // Linear interpolation between two points
-            for (i = 0; i < g_AmbientCalibration.PointCount - 1; i++)
-            {
-                if (last_pwm >= g_AmbientCalibration.PiecewisePoints[i].pwm && 
-                    last_pwm <= g_AmbientCalibration.PiecewisePoints[i+1].pwm)
-                {
-                    float x1 = g_AmbientCalibration.PiecewisePoints[i].pwm;
-                    float y1 = g_AmbientCalibration.PiecewisePoints[i].delta_temp;
-                    float x2 = g_AmbientCalibration.PiecewisePoints[i+1].pwm;
-                    float y2 = g_AmbientCalibration.PiecewisePoints[i+1].delta_temp;
-                    
-                    delta_temp = y1 + (y2 - y1) * (last_pwm - x1) / (x2 - x1);
-                    break;
-                }
-            }
-        }
-        
+        delta_temp = ambient_delta_piecewise(&g_AmbientCalibration, last_pwm);
         if (verbose > 1)
         {
             FSCPRINT(" > Ambient Cal (Piecewise): PWM=%d, ΔT=%.2f\n", last_pwm, delta_temp);
         }
     }
-    
+
     float ambient_temp = inlet_temp - delta_temp;
     
     if (verbose > 0)
@@ -231,50 +262,15 @@ int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo
     // Calculate target PWM based on ambient base curve
     if (pPolynomial->CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
     {
-        // Polynomial calculation: PWM = a0 + a1*T + a2*T^2 + a3*T^3
-        float temp_power = 1.0;
-        float target_pwm = 0.0;
-        for (i = 0; i < pPolynomial->CoeffCount && i < MAX_POLYNOMIAL_COEFFS; i++)
-        {
-            target_pwm += pPolynomial->Coefficients[i] * temp_power;
-            temp_power *= ambient_temp;
-        }
-        CurrentPWM = (INT16S)target_pwm;
+        CurrentPWM = (INT16S)eval_poly(ambient_temp, pPolynomial->Coefficients, pPolynomial->CoeffCount);
     }
     else
     {
-        // Piecewise linear interpolation
         INT8U ambient_temp_int = (INT8U)ambient_temp;
-        
-        if (pPolynomial->PointCount < 2)
-        {
-            CurrentPWM = pFSCTempSensorInfo->LastPWM; // No curve data, keep last PWM
-        }
-        else if (ambient_temp_int <= pPolynomial->PiecewisePoints[0].temp)
-        {
-            CurrentPWM = pPolynomial->PiecewisePoints[0].pwm;
-        }
-        else if (ambient_temp_int >= pPolynomial->PiecewisePoints[pPolynomial->PointCount-1].temp)
-        {
-            CurrentPWM = pPolynomial->PiecewisePoints[pPolynomial->PointCount-1].pwm;
-        }
-        else
-        {
-            // Linear interpolation between two points
-            for (i = 0; i < pPolynomial->PointCount - 1; i++)
-            {
-                if (ambient_temp_int >= pPolynomial->PiecewisePoints[i].temp && 
-                    ambient_temp_int <= pPolynomial->PiecewisePoints[i+1].temp)
-                {
-                    INT8U t1 = pPolynomial->PiecewisePoints[i].temp;
-                    INT8U p1 = pPolynomial->PiecewisePoints[i].pwm;
-                    INT8U t2 = pPolynomial->PiecewisePoints[i+1].temp;
-                    INT8U p2 = pPolynomial->PiecewisePoints[i+1].pwm;
-                    
-                    CurrentPWM = p1 + (p2 - p1) * (ambient_temp_int - t1) / (t2 - t1);
-                    break;
-                }
-            }
+        if (pPolynomial->PointCount < 2) {
+            CurrentPWM = pFSCTempSensorInfo->LastPWM;
+        } else {
+            CurrentPWM = pwm_piecewise_for_temp(pPolynomial, ambient_temp_int);
         }
     }
     
@@ -283,21 +279,11 @@ int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo
     {
         // Add falling hysteresis
         float hyst_ambient = ambient_temp + pPolynomial->FallingHyst;
-        
-        // Recalculate PWM with hysteresis
+        // Recalculate PWM with hysteresis for polynomial curve
         if (pPolynomial->CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
         {
-            float temp_power = 1.0;
-            float target_pwm = 0.0;
-            for (i = 0; i < pPolynomial->CoeffCount && i < MAX_POLYNOMIAL_COEFFS; i++)
-            {
-                target_pwm += pPolynomial->Coefficients[i] * temp_power;
-                temp_power *= hyst_ambient;
-            }
-            INT16S hyst_pwm = (INT16S)target_pwm;
-            
-            if (hyst_pwm > CurrentPWM)
-            {
+            INT16S hyst_pwm = (INT16S)eval_poly(hyst_ambient, pPolynomial->Coefficients, pPolynomial->CoeffCount);
+            if (hyst_pwm > CurrentPWM) {
                 CurrentPWM = hyst_pwm;
             }
         }
@@ -342,11 +328,7 @@ int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo
     }
     
     // Boundary clamping
-    if(CurrentPWM > (INT16S)pFSCTempSensorInfo->MaxPWM)
-        CurrentPWM = (INT16S)pFSCTempSensorInfo->MaxPWM;
-
-    if(CurrentPWM < (INT16S)pFSCTempSensorInfo->MinPWM)
-        CurrentPWM = (INT16S)pFSCTempSensorInfo->MinPWM;
+    CurrentPWM = clamp16(CurrentPWM, (INT16S)pFSCTempSensorInfo->MinPWM, (INT16S)pFSCTempSensorInfo->MaxPWM);
     
     if(verbose > 0)
     {
@@ -360,6 +342,16 @@ int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo
     *PWMValue = (INT8U)CurrentPWM;
 
     return 0;
+}
+
+/*---------------------------------------------------------------------------
+* @fn FSCGetPWMValue_Polynomial
+*
+* @brief Compatibility wrapper for ambient-base algorithm
+*---------------------------------------------------------------------------*/
+int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst)
+{
+    return FSCGetPWMValue_Polynomial(PWMValue, pFSCTempSensorInfo, verbose, BMCInst);
 }
 
 /*---------------------------------------------------------------------------

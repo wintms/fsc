@@ -3,17 +3,8 @@
     "debug_verbose": 1,
 
     "system_info": {
-        "chassis_fan_max_num": 5,
-        "chassis_fan_used_num": 5,
-        "chassis_fan_rotor_num": 2,
-        "chassis_fan_redundant_num": 0,
-        "psu_fan_max_num": 4,
-        "psu_fan_used_num": 4,
-        "psu_fan_redundant_num": 0,
-        "system_fan_airflow_max_num": 1,
-        "system_fan_airflow": 1,
         "fsc_mode": "auto",
-        "fsc_version": "0.2",
+        "fsc_version": "0.1",
         "fan_max_pwm": 100,
         "fan_initial_pwm": 30
     },
@@ -37,18 +28,6 @@
                 "kp": 2.5,
                 "ki": 0.15,
                 "kd": 0.2
-            },
-            {
-                "label": "Switch internal sensor",
-                "profile_index": 2,
-                "sensor_num": 115,
-                "sensor_name": "SW_U14",
-                "type": "linear",
-                "TempMin": 42,
-                "TempMax": 52,
-                "PwmMin": 50,
-                "PwmMax": 100,
-                "FallingHyst": 3
             },
             {
                 "label": "Inlet sensor with ambient base curve",

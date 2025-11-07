@@ -26,51 +26,44 @@ char* ReadFileToString(const char *filename)
     char *content = NULL;
     size_t read_chars = 0;
 
-    /* open in read binary mode */
     file = fopen(filename, "rb");
     if(file == NULL)
     {
-        goto cleanup;
+        return NULL;
     }
 
-    /* get the length */
     if(fseek(file, 0, SEEK_END) != 0)
     {
-        goto cleanup;
+        fclose(file);
+        return NULL;
     }
     length = ftell(file);
     if(length < 0)
     {
-        goto cleanup;
+        fclose(file);
+        return NULL;
     }
     if(fseek(file, 0, SEEK_SET) != 0)
     {
-        goto cleanup;
+        fclose(file);
+        return NULL;
     }
 
-    /* allocate content buffer */
-    content = (char*)malloc((size_t)length + sizeof(""));
+    content = (char*)malloc((size_t)length + 1);
     if(content == NULL)
     {
-        goto cleanup;
+        fclose(file);
+        return NULL;
     }
 
-    /* read the file into memory */
     read_chars = fread(content, sizeof(char), (size_t)length, file);
+    fclose(file);
     if(read_chars != (size_t)length)
     {
         free(content);
-        content = NULL;
-        goto cleanup;
+        return NULL;
     }
     content[read_chars] = '\0';
-
-cleanup:
-    if(file != NULL)
-    {
-        fclose(file);
-    }
-
     return content;
 }
 
@@ -90,42 +83,51 @@ int ConvertcJSONToValue(cJSON *  pMap, char *pcKey, void  *pValue)
     int       ret     = 0;
     cJSON*    pNode    = NULL;
 
-    if(!pMap)
+    if(!pMap || !pcKey || !pValue)
     {
-        printf("pMap NULL\n");
+        printf("fsc_parser: invalid args in ConvertcJSONToValue\n");
         return  -1;
     }
 
-    if(!pcKey)
+    pNode = cJSON_GetObjectItem(pMap, pcKey);
+    if(!pNode)
     {
-        printf("pcKey NULL\n");
-        return  -1;
+        return -1;
     }
 
-    if(!pValue)
+    if (cJSON_IsNumber(pNode))
     {
-        printf("pValue NULL\n");
-        return  -1;
+        *(double *)pValue = pNode->valuedouble;
     }
-
-    if((pNode = cJSON_GetObjectItem(pMap, pcKey)))
+    else if (cJSON_IsString(pNode) && pNode->valuestring)
     {
-        switch(pNode->type)
-        {
-            case cJSON_Number:
-                *(double *)pValue = pNode->valuedouble;
-                break;
-            case cJSON_String:
-                snprintf(pValue, LABEL_LENGTH_MAX, "%s", pNode->valuestring);
-                break;
-
-            default:
-                ret = -1;
-                break;
-        }
+        snprintf(pValue, LABEL_LENGTH_MAX, "%s", pNode->valuestring);
+    }
+    else
+    {
+        ret = -1;
     }
 
     return ret;
+}
+
+/* Convenience helpers for cleaner callsites */
+static int json_get_uint8(cJSON *obj, const char *key, INT8U *out)
+{
+    double tmp;
+    if (ConvertcJSONToValue(obj, (char*)key, &tmp)) return -1;
+    *out = (INT8U)tmp;
+    return 0;
+}
+
+static int json_get_string(cJSON *obj, const char *key, char *out, size_t outlen)
+{
+    char buf[LABEL_LENGTH_MAX] = {0};
+    if (ConvertcJSONToValue(obj, (char*)key, buf)) return -1;
+    if (!strlen(buf)) return -1;
+    strncpy(out, buf, outlen - 1);
+    out[outlen - 1] = '\0';
+    return 0;
 }
 
 /**
@@ -149,6 +151,11 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
     int ret = -1;
 
     file = ReadFileToString(filename);
+    if (!file)
+    {
+        printf("fsc_parser: ambient calibration file read error\n");
+        goto END;
+    }
     cjson_input = cJSON_Parse(file);
 
     pAmbientCalInfo = cJSON_GetObjectItem(cjson_input, "ambient_calibration");
@@ -291,6 +298,11 @@ int ParseDebugVerboseFromJson(char *filename, INT8U *verbose)
     int ret = -1;
 
     file = ReadFileToString(filename);
+    if (!file)
+    {
+        printf("fsc_parser: debug_verbose file read error.\n");
+        goto END;
+    }
     cjson_input = cJSON_Parse((const char *)file);
 
     if (cJSON_IsInvalid(cjson_input))
@@ -334,6 +346,11 @@ int ParseSystemInfoFromJson(char *filename, FSC_JSON_SYSTEM_INFO *pFscSystemInfo
     int ret = -1;
 
     file = ReadFileToString(filename);
+    if (!file)
+    {
+        printf("fsc_parser: system_info file read error\n");
+        goto END;
+    }
     cjson_input = cJSON_Parse(file);
     if (cJSON_IsInvalid(cjson_input))
     {
@@ -348,76 +365,12 @@ int ParseSystemInfoFromJson(char *filename, FSC_JSON_SYSTEM_INFO *pFscSystemInfo
         goto END;
     }
 
-    if(ConvertcJSONToValue(pSystemInfo, "chassis_fan_max_num", &dTmp))
-    {
-        printf("fsc_parser: get chassis_fan_max_num error\n");
-        goto END;
-    }
-    pFscSystemInfo->ChassisFanMaxNum = (INT8U)dTmp;
-
-    if(ConvertcJSONToValue(pSystemInfo, "chassis_fan_used_num", &dTmp))
-    {
-        printf("fsc_parser: get chassis_fan_used_num error\n");
-        goto END;
-    }
-    pFscSystemInfo->ChassisFanUsedNum = (INT8U)dTmp;
-
-    if(ConvertcJSONToValue(pSystemInfo, "chassis_fan_rotor_num", &dTmp))
-    {
-        printf("fsc_parser: get chassis_fan_rotor_num error\n");
-        goto END;
-    }
-    pFscSystemInfo->ChassisFanRotorNum = (INT8U)dTmp;
-
-    if(ConvertcJSONToValue(pSystemInfo, "chassis_fan_redundant_num", &dTmp))
-    {
-        printf("fsc_parser: get chassis_fan_redundant_num error\n");
-        goto END;
-    }
-    pFscSystemInfo->ChassisFanRedundantNum = (INT8U)dTmp;
-
-    if(ConvertcJSONToValue(pSystemInfo, "psu_fan_max_num", &dTmp))
-    {
-        printf("fsc_parser: get psu_fan_max_num error\n");
-        goto END;
-    }
-    pFscSystemInfo->PSUFanMaxNum = (INT8U)dTmp;
-
-    if(ConvertcJSONToValue(pSystemInfo, "psu_fan_used_num", &dTmp))
-    {
-        printf("fsc_parser: get psu_fan_used_num error\n");
-        goto END;
-    }
-    pFscSystemInfo->PSUFanUsedNum = (INT8U)dTmp;
-
-    if(ConvertcJSONToValue(pSystemInfo, "psu_fan_redundant_num", &dTmp))
-    {
-        printf("fsc_parser: get psu_fan_redundant_num error\n");
-        goto END;
-    }
-    pFscSystemInfo->PSUFanRedundantNum = (INT8U)dTmp;
-
-    if(ConvertcJSONToValue(pSystemInfo, "system_fan_airflow_max_num", &dTmp))
-    {
-        printf("fsc_parser: get system_fan_airflow_max_num error\n");
-        goto END;
-    }
-    pFscSystemInfo->SystemMaxFanAirflowNum = (INT8U)dTmp;
-
-    if(ConvertcJSONToValue(pSystemInfo, "system_fan_airflow", &dTmp))
-    {
-        printf("fsc_parser: get system_fan_airflow error\n");
-        goto END;
-    }
-    pFscSystemInfo->SystemFanAirflow = (INT8U)dTmp;
-
     if(ConvertcJSONToValue(pSystemInfo, "fsc_mode", cString) || !strlen(cString))
     {
-        printf("fsc_parser: get fsc_mode error\n");
-        goto END;
+        // fsc_mode optional, default to auto
+        pFscSystemInfo->FSCMode = FAN_CTL_MODE_AUTO;
     }
-
-    if(strcmp(cString, CJSON_FSCMode_Auto) == 0)
+    else if(strcmp(cString, CJSON_FSCMode_Auto) == 0)
     {
         pFscSystemInfo->FSCMode = FAN_CTL_MODE_AUTO;
     }
@@ -453,15 +406,10 @@ int ParseSystemInfoFromJson(char *filename, FSC_JSON_SYSTEM_INFO *pFscSystemInfo
     if(verbose > 1)
     {
         FSCPRINT(" > system_info: \n");
-        FSCPRINT("  >> ChassisFanMaxNum          : %d\n", pFscSystemInfo->ChassisFanMaxNum);
-        FSCPRINT("  >> ChassisFanUsedNum         : %d\n", pFscSystemInfo->ChassisFanUsedNum);
-        FSCPRINT("  >> ChassisFanRotorNum        : %d\n", pFscSystemInfo->ChassisFanRotorNum);
-        FSCPRINT("  >> PSUFanMaxNum              : %d\n", pFscSystemInfo->PSUFanMaxNum);
-        FSCPRINT("  >> PSUFanUsedNum             : %d\n", pFscSystemInfo->PSUFanUsedNum);
-        FSCPRINT("  >> SystemMaxFanAirflowNum    : %d\n", pFscSystemInfo->SystemMaxFanAirflowNum);
-        FSCPRINT("  >> SystemFanAirflow          : %s\n", pFscSystemInfo->SystemFanAirflow ? "B2F" : "F2B");
         FSCPRINT("  >> FSCMode                   : %s\n", (pFscSystemInfo->FSCMode == FAN_CTL_MODE_AUTO) ? "Auto" : "Manual");
         FSCPRINT("  >> FanInitialPWM             : %d%%\n", pFscSystemInfo->FanInitialPWM);
+        FSCPRINT("  >> FanMaxPWM                 : %d%%\n", pFscSystemInfo->FanMaxPWM);
+        FSCPRINT("  >> FSCVersion                : %s\n", pFscSystemInfo->FSCVersion);
     }
 
 END:
@@ -495,6 +443,11 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
     int ret = -1;
 
     file = ReadFileToString(filename);
+    if (!file)
+    {
+        printf("fsc_parser: profile_info file read error\n");
+        goto END;
+    }
     cjson_input = cJSON_Parse(file);
 
     pProfilesInfo = cJSON_GetObjectItem(cjson_input, "profile_info");
@@ -608,7 +561,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
             }
             pFscProfileInfo->ProfileInfo[i].PIDParameter.Kd = dTmp;
         }
-        else if(strcmp(cString, CJSON_ProfileType_AmbientBase) == 0)
+        else if(strcmp(cString, CJSON_ProfileType_Polynomial) == 0)
         {
             pFscProfileInfo->ProfileInfo[i].ProfileType = FSC_CTL_POLYNOMIAL;
 

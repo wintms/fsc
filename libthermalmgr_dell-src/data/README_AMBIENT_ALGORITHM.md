@@ -26,7 +26,7 @@ typedef struct {
 } FSCAmbientCalibration;
 ```
 
-### FSCAmbientBase
+### FSCPolynomial
 用于环境基准曲线的数据结构：
 ```c
 typedef struct {
@@ -35,11 +35,11 @@ typedef struct {
     INT8U CoeffCount;                           // 多项式系数个数
     float Coefficients[MAX_POLYNOMIAL_COEFFS];  // 多项式系数
     INT8U PointCount;                           // 分段线性点数
-    FSCAmbientBasePoint PiecewisePoints[MAX_PIECEWISE_POINTS]; // 分段线性点
+    FSCPolynomialPoint PiecewisePoints[MAX_PIECEWISE_POINTS]; // 分段线性点
     float FallingHyst;                          // 下降滞后温度
     float MaxRisingRate;                        // 最大上升速率 (%/cycle)
     float MaxFallingRate;                       // 最大下降速率 (%/cycle)
-} FSCAmbientBase;
+} FSCPolynomial;
 ```
 
 ## 核心函数
@@ -56,16 +56,16 @@ float FSCGetAmbientTemperature(float inlet_temp, float current_pwm);
 
 **返回值:** 校准后的环境温度
 
-### FSCGetPWMValue_AmbientBase
+### FSCGetPWMValue_Polynomial
 ```c
-float FSCGetPWMValue_AmbientBase(float ambient_temp, FSCAmbientBase* pAmbientBase, 
+float FSCGetPWMValue_Polynomial(float ambient_temp, FSCPolynomial* pPolynomial, 
                                 float current_pwm, INT8U enable_rate_limit);
 ```
 根据环境基准曲线计算PWM值。
 
 **参数:**
 - `ambient_temp`: 环境温度
-- `pAmbientBase`: 环境基准曲线参数
+- `pPolynomial`: 环境基准曲线参数
 - `current_pwm`: 当前PWM值
 - `enable_rate_limit`: 是否启用速率限制
 
@@ -128,7 +128,7 @@ float FSCGetPWMValue_AmbientBase(float ambient_temp, FSCAmbientBase* pAmbientBas
 
 1. **传感器读取**: 获取进风口传感器温度读数
 2. **环境温度校准**: 使用`FSCGetAmbientTemperature`函数校准环境温度
-3. **PWM计算**: 使用`FSCGetPWMValue_AmbientBase`函数计算目标PWM值
+3. **PWM计算**: 使用`FSCGetPWMValue_Polynomial`函数计算目标PWM值
 4. **速率限制**: 应用速率限制防止PWM变化过快
 5. **滞后处理**: 应用下降滞后避免频繁调整
 6. **边界限制**: 确保PWM值在有效范围内
