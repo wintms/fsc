@@ -88,22 +88,49 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
 
     for (i = 0; i < g_FscProfileInfo.TotalProfileNum; i++)
     {
-        pFSCTempSensorInfo[i].SensorNumber = g_FscProfileInfo.ProfileInfo[i].SensorNum;
-        pSensorInfo = API_GetSensorInfo(pFSCTempSensorInfo[i].SensorNumber, 0, BMCInst);
-
-        if(pSensorInfo && pSensorInfo->Err != CC_DEST_UNAVAILABLE)
+        // Multi-sensor averaging support: use sensor_nums if provided
+        int sensor_count = g_FscProfileInfo.ProfileInfo[i].SensorCount;
+        if (sensor_count <= 0)
         {
-            // Sensor Present
-            pFSCTempSensorInfo[i].Present = pSensorInfo->IsSensorPresent;
+            sensor_count = 1;
+            g_FscProfileInfo.ProfileInfo[i].SensorNums[0] = g_FscProfileInfo.ProfileInfo[i].SensorNum;
+        }
 
-            // CurrentTemp
-            if ((pSensorInfo->EventFlags & 0x20) != 0x20) // Bit 5 -  Unable to read
+        long temp_sum = 0;
+        int valid_count = 0;
+        INT8U any_present = FALSE;
+
+        // For backward compatibility, keep the first sensor number
+        pFSCTempSensorInfo[i].SensorNumber = g_FscProfileInfo.ProfileInfo[i].SensorNums[0];
+
+        for (int k = 0; k < sensor_count; k++)
+        {
+            INT8U s_num = g_FscProfileInfo.ProfileInfo[i].SensorNums[k];
+            pSensorInfo = API_GetSensorInfo(s_num, 0, BMCInst);
+
+            if(pSensorInfo && pSensorInfo->Err != CC_DEST_UNAVAILABLE)
             {
-                pFSCTempSensorInfo[i].CurrentTemp = pSensorInfo->SensorReading;
+                if (pSensorInfo->IsSensorPresent)
+                {
+                    any_present = TRUE;
+                    // Bit 5 - Unable to read
+                    if ((pSensorInfo->EventFlags & 0x20) != 0x20)
+                    {
+                        temp_sum += pSensorInfo->SensorReading;
+                        valid_count++;
+                    }
+                }
             }
         }
-        else
+
+        pFSCTempSensorInfo[i].Present = any_present;
+        if (valid_count > 0)
         {
+            pFSCTempSensorInfo[i].CurrentTemp = (INT16S)(temp_sum / valid_count);
+        }
+        else if (!any_present)
+        {
+            // No present sensors; mark as absent
             pFSCTempSensorInfo[i].Present = FALSE;
         }
         // MinPWM

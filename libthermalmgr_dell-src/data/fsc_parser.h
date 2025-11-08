@@ -12,6 +12,8 @@
 #define CJSON_FSCMode_Manual        "manual"
 
 #define LABEL_LENGTH_MAX   32
+// Maximum number of sensors allowed in a single profile's aggregation group
+#define MAX_SENSOR_GROUP_SIZE 8
 
 typedef struct
 {
@@ -50,7 +52,9 @@ typedef struct
 {
     char    Label[LABEL_LENGTH_MAX];
     INT8U   ProfileIndex;
-    INT8U   SensorNum;
+    INT8U   SensorNum;                  // Backward compatibility: first sensor
+    INT8U   SensorCount;                // Number of sensors in the group
+    INT8U   SensorNums[MAX_SENSOR_GROUP_SIZE]; // Sensor numbers for averaging
     char    SensorName[16];
     INT8U   ProfileType;
     FSC_JSON_PROFILE_PID    PIDParameter;

@@ -18,9 +18,10 @@
     "profile_info": {
         "profile_list": [
             {
-                "label": "CPU internal sensor",
+                "label": "CPU sensor",
                 "profile_index": 1,
                 "sensor_num": 1,
+                "sensor_nums": [1],
                 "sensor_name": "CPU_TEMP",
                 "type": "pid",
                 "setpoint": 95,
@@ -30,7 +31,7 @@
                 "kd": 0.1
             },
             {
-                "label": "Inlet sensor with ambient base curve",
+                "label": "Inlet sensor",
                 "profile_index": 2,
                 "sensor_num": 15,
                 "sensor_name": "IOB_U29_TEMP",

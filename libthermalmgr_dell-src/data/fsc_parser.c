@@ -474,13 +474,49 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
 
         pFscProfileInfo->ProfileInfo[i].ProfileIndex = (INT8U) dTmp;
 
-        if(ConvertcJSONToValue(pProfileItemInfo, "sensor_num", &dTmp))
-        {
-            printf("fsc_parser: get sensor_num error\n");
-            goto END;
-        }
+        // Initialize multi-sensor grouping defaults
+        pFscProfileInfo->ProfileInfo[i].SensorCount = 0;
+        memset(pFscProfileInfo->ProfileInfo[i].SensorNums, 0, sizeof(pFscProfileInfo->ProfileInfo[i].SensorNums));
 
-        pFscProfileInfo->ProfileInfo[i].SensorNum = (INT8U) dTmp;
+        // Prefer sensor_nums array if provided; otherwise fall back to single sensor_num
+        cJSON *pSensorNumsArray = cJSON_GetObjectItem(pProfileItemInfo, "sensor_nums");
+        if (pSensorNumsArray && cJSON_IsArray(pSensorNumsArray))
+        {
+            int arrSize = cJSON_GetArraySize(pSensorNumsArray);
+            if (arrSize <= 0)
+            {
+                printf("fsc_parser: sensor_nums array is empty\n");
+                goto END;
+            }
+            if (arrSize > MAX_SENSOR_GROUP_SIZE)
+            {
+                arrSize = MAX_SENSOR_GROUP_SIZE;
+            }
+            pFscProfileInfo->ProfileInfo[i].SensorCount = (INT8U)arrSize;
+            for (int j = 0; j < arrSize; j++)
+            {
+                cJSON *pItem = cJSON_GetArrayItem(pSensorNumsArray, j);
+                if (!pItem)
+                {
+                    printf("fsc_parser: get sensor_nums[%d] error\n", j);
+                    goto END;
+                }
+                pFscProfileInfo->ProfileInfo[i].SensorNums[j] = (INT8U)cJSON_GetNumberValue(pItem);
+            }
+            // For backward compatibility, set SensorNum to the first element
+            pFscProfileInfo->ProfileInfo[i].SensorNum = pFscProfileInfo->ProfileInfo[i].SensorNums[0];
+        }
+        else
+        {
+            if(ConvertcJSONToValue(pProfileItemInfo, "sensor_num", &dTmp))
+            {
+                printf("fsc_parser: get sensor_num error\n");
+                goto END;
+            }
+            pFscProfileInfo->ProfileInfo[i].SensorNum = (INT8U) dTmp;
+            pFscProfileInfo->ProfileInfo[i].SensorCount = 1;
+            pFscProfileInfo->ProfileInfo[i].SensorNums[0] = pFscProfileInfo->ProfileInfo[i].SensorNum;
+        }
 
         if(ConvertcJSONToValue(pProfileItemInfo, "sensor_name", cString) || !strlen(cString))
         {

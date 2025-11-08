@@ -21,6 +21,7 @@
                 "label": "CPU internal sensor",
                 "profile_index": 1,
                 "sensor_num": 1,
+                "sensor_nums": [1],
                 "sensor_name": "CPU_TEMP",
                 "type": "pid",
                 "setpoint": 95,
