@@ -12,10 +12,7 @@
 #define CJSON_FSCMode_Manual        "manual"
 
 #define LABEL_LENGTH_MAX   32
-// Maximum number of sensors allowed in a single profile's aggregation group
-// Optics may require up to 64 modules
 #define MAX_SENSOR_GROUP_SIZE 64
-// Maximum PID buckets based on power thresholds
 #define MAX_PID_POWER_BUCKETS 8
 
 // Aggregation modes
@@ -41,10 +38,10 @@ typedef struct
 
 typedef struct
 {
-    float PowerMin;              // Inclusive lower bound
-    float PowerMax;              // Inclusive upper bound
-    double SetPoint;             // Optional override; if 0, use default
-    signed char SetPointType;    // Optional override; if <0, use default
+    float PowerMin;
+    float PowerMax;
+    double SetPoint;
+    signed char SetPointType;
     double Kp;
     double Ki;
     double Kd;
@@ -52,34 +49,34 @@ typedef struct
 
 typedef struct
 {
-    INT8U CurveType;                        // 0=polynomial, 1=piecewise
-    INT8U LoadScenario;                     // 0=idle, 1=low_power, 2=full_load
-    INT8U CoeffCount;                       // Number of coefficients for polynomial
-    float Coefficients[MAX_POLYNOMIAL_COEFFS]; // Polynomial coefficients
-    INT8U PointCount;                       // Number of points for piecewise
+    INT8U CurveType;
+    INT8U LoadScenario;
+    INT8U CoeffCount;
+    float Coefficients[MAX_POLYNOMIAL_COEFFS];
+    INT8U PointCount;
     struct {
-        INT8U temp;                         // Temperature
-        INT8U pwm;                          // PWM value
+        INT8U temp;
+        INT8U pwm;
     } PiecewisePoints[MAX_PIECEWISE_POINTS];
-    float FallingHyst;                      // Falling hysteresis (default 2)
-    INT8U MaxRisingRate;                    // Max rising rate %/cycle (default 10)
-    INT8U MaxFallingRate;                   // Max falling rate %/cycle (default 5)
+    float FallingHyst;
+    INT8U MaxRisingRate;
+    INT8U MaxFallingRate;
 } PACKED FSC_JSON_PROFILE_POLYNOMIAL;
 
 typedef struct
 {
     char    Label[LABEL_LENGTH_MAX];
     INT8U   ProfileIndex;
-    INT8U   SensorNum;                  // Backward compatibility: first sensor
-    INT8U   SensorCount;                // Number of sensors in the group
-    INT8U   SensorNums[MAX_SENSOR_GROUP_SIZE]; // Sensor numbers for averaging
-    INT8U   AggregationMode;            // 0=average, 1=max
-    INT8U   PowerSensorCount;           // Number of power sensors mapped to group
-    INT8U   PowerSensorNums[MAX_SENSOR_GROUP_SIZE]; // Power sensor numbers
+    INT8U   SensorNum;
+    INT8U   SensorCount;
+    INT8U   SensorNums[MAX_SENSOR_GROUP_SIZE];
+    INT8U   AggregationMode;
+    INT8U   PowerSensorCount;
+    INT8U   PowerSensorNums[MAX_SENSOR_GROUP_SIZE];
     char    SensorName[16];
     INT8U   ProfileType;
     FSC_JSON_PROFILE_PID    PIDParameter;
-    INT8U   PIDAltCount;                // Number of power buckets
+    INT8U   PIDAltCount;
     FSC_JSON_PID_POWER_BUCKET PIDAlt[MAX_PID_POWER_BUCKETS];
     FSC_JSON_PROFILE_POLYNOMIAL PolynomialParameter;
 } PACKED FSC_JSON_PROFILE_INFO;
@@ -96,7 +93,8 @@ extern FSC_JSON_SYSTEM_INFO            g_FscSystemInfo;
 extern FSC_JSON_ALL_PROFILES_INFO      g_FscProfileInfo;
 extern FSCAmbientCalibration           g_AmbientCalibration;
 
-extern int ParseDebugVerboseFromJson(char *filename, INT8U *verbose);
+// Function prototypes
+int ParseDebugVerboseFromJson(char *filename, INT8U *verbose);
 int ParseSystemInfoFromJson(char *filename, FSC_JSON_SYSTEM_INFO *pFscSystemInfo, INT8U verbose);
 int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProfileInfo, INT8U verbose);
 int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbientCalibration, INT8U verbose);

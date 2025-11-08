@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "IPMIConf.h"
 #include "SensorAPI.h"
@@ -9,6 +10,8 @@
 #include "fsc_parser.h"
 #include "fsc_utils.h"
 #include "fsc_core.h"
+#include "fsc_common.h"
+#include "fsc_math.h"
 
 /**
  * @fn FSCInitialize
@@ -66,199 +69,292 @@ static int FSCInitialize(INT8U *verbose)
     return 0;
 }
 
+// Forward declarations for separated functions
+static int FSCReadAndAggregateSensors(INT8U verbose, int BMCInst);
+static int FSCCalculateAllProfilePWMs(INT8U verbose, int BMCInst);
+static INT8U FSCDetermineMaxPWM(INT8U verbose);
+
 /**
- * @fn FSCUpdateOutputPWM
- * @brief Calculates the required fan PWM value based on all sensor readings.
- *
- * This function iterates through all configured temperature sensor profiles,
- * reads the current temperature for each, and calculates a required PWM value
- * using the defined algorithm (PID or Linear). It then determines the maximum
- * PWM value among all sensors, which becomes the final output PWM for the fans.
- * @param[out] pwm Pointer to store the final calculated PWM value.
- * @param[in] verbose Verbosity level for debug printing.
- * @param[in] BMCInst The BMC instance number.
- * @return 0 on success, -1 on failure.
+ * @fn FSCReadSensorsForProfile
+ * @brief Reads and aggregates sensors for a single profile
  */
-static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
+static int FSCReadSensorsForProfile(int profile_idx, INT8U verbose, int BMCInst)
 {
     SensorInfo_T* pSensorInfo = NULL;
-    INT8U pwm_value = 0;
-    INT8U output_pwm = 0;
-    int i = 0;
+    int sensor_count = g_FscProfileInfo.ProfileInfo[profile_idx].SensorCount;
 
-    for (i = 0; i < g_FscProfileInfo.TotalProfileNum; i++)
+    // Initialize defaults
+    if (sensor_count <= 0)
     {
-        // Multi-sensor support: use sensor_nums if provided
-        int sensor_count = g_FscProfileInfo.ProfileInfo[i].SensorCount;
-        if (sensor_count <= 0)
+        sensor_count = 1;
+        g_FscProfileInfo.ProfileInfo[profile_idx].SensorNums[0] =
+            g_FscProfileInfo.ProfileInfo[profile_idx].SensorNum;
+    }
+
+    // For backward compatibility
+    pFSCTempSensorInfo[profile_idx].SensorNumber =
+        g_FscProfileInfo.ProfileInfo[profile_idx].SensorNums[0];
+
+    long temp_sum = 0;
+    int valid_count = 0;
+    INT16S max_temp = -32768;
+    int max_idx = -1;
+    INT8U any_present = FALSE;
+
+    // Read all sensors in the group
+    for (int k = 0; k < sensor_count; k++)
+    {
+        INT8U s_num = g_FscProfileInfo.ProfileInfo[profile_idx].SensorNums[k];
+        pSensorInfo = API_GetSensorInfo(s_num, 0, BMCInst);
+
+        if (pSensorInfo && pSensorInfo->Err != CC_DEST_UNAVAILABLE)
         {
-            sensor_count = 1;
-            g_FscProfileInfo.ProfileInfo[i].SensorNums[0] = g_FscProfileInfo.ProfileInfo[i].SensorNum;
+            if (pSensorInfo->IsSensorPresent)
+            {
+                any_present = TRUE;
+                // Bit 5 - Unable to read
+                if ((pSensorInfo->EventFlags & 0x20) != 0x20)
+                {
+                    INT16S t = pSensorInfo->SensorReading;
+                    temp_sum += t;
+                    valid_count++;
+
+                    if (t > max_temp)
+                    {
+                        max_temp = t;
+                        max_idx = k;
+                    }
+                }
+            }
+        }
+    }
+
+    // Store results
+    pFSCTempSensorInfo[profile_idx].Present = any_present;
+    if (valid_count > 0)
+    {
+        if (g_FscProfileInfo.ProfileInfo[profile_idx].AggregationMode == AGGREGATION_MAX &&
+            max_idx >= 0)
+        {
+            pFSCTempSensorInfo[profile_idx].CurrentTemp = max_temp;
+        }
+        else
+        {
+            pFSCTempSensorInfo[profile_idx].CurrentTemp = (INT16S)(temp_sum / valid_count);
+        }
+    }
+    else if (!any_present)
+    {
+        pFSCTempSensorInfo[profile_idx].Present = FALSE;
+    }
+
+    // Store metadata
+    pFSCTempSensorInfo[profile_idx].MinPWM = g_FscSystemInfo.FanInitialPWM;
+    pFSCTempSensorInfo[profile_idx].MaxPWM = g_FscSystemInfo.FanMaxPWM;
+    pFSCTempSensorInfo[profile_idx].Algorithm = g_FscProfileInfo.ProfileInfo[profile_idx].ProfileType;
+    strncpy((char *)pFSCTempSensorInfo[profile_idx].Label,
+            (char *)g_FscProfileInfo.ProfileInfo[profile_idx].Label,
+            sizeof(pFSCTempSensorInfo[profile_idx].Label) - 1);
+
+    // Optional: Read power sensors for dynamic PID
+    if (g_FscProfileInfo.ProfileInfo[profile_idx].ProfileType == FSC_CTL_PID &&
+        g_FscProfileInfo.ProfileInfo[profile_idx].PIDAltCount > 0)
+    {
+        int pcount = g_FscProfileInfo.ProfileInfo[profile_idx].PowerSensorCount;
+        int power_idx = 0;
+
+        if (g_FscProfileInfo.ProfileInfo[profile_idx].AggregationMode == AGGREGATION_MAX &&
+            max_idx >= 0 && max_idx < pcount)
+        {
+            power_idx = max_idx;
         }
 
-        long temp_sum = 0;
-        int valid_count = 0;
-        INT16S max_temp = -32768;
-        int max_idx = -1;
-        INT8U any_present = FALSE;
-
-        // For backward compatibility, keep the first sensor number
-        pFSCTempSensorInfo[i].SensorNumber = g_FscProfileInfo.ProfileInfo[i].SensorNums[0];
-
-        for (int k = 0; k < sensor_count; k++)
+        if (pcount > 0)
         {
-            INT8U s_num = g_FscProfileInfo.ProfileInfo[i].SensorNums[k];
-            pSensorInfo = API_GetSensorInfo(s_num, 0, BMCInst);
+            INT8U p_num = g_FscProfileInfo.ProfileInfo[profile_idx].PowerSensorNums[power_idx];
+            pSensorInfo = API_GetSensorInfo(p_num, 0, BMCInst);
 
-            if(pSensorInfo && pSensorInfo->Err != CC_DEST_UNAVAILABLE)
+            if (pSensorInfo && pSensorInfo->Err != CC_DEST_UNAVAILABLE &&
+                pSensorInfo->IsSensorPresent)
             {
-                if (pSensorInfo->IsSensorPresent)
+                if ((pSensorInfo->EventFlags & 0x20) != 0x20)
                 {
-                    any_present = TRUE;
-                    // Bit 5 - Unable to read
-                    if ((pSensorInfo->EventFlags & 0x20) != 0x20)
+                    float selected_power = (float)pSensorInfo->SensorReading;
+
+                    // Select bucket by power
+                    for (int b = 0; b < g_FscProfileInfo.ProfileInfo[profile_idx].PIDAltCount; b++)
                     {
-                        INT16S t = pSensorInfo->SensorReading;
-                        temp_sum += t;
-                        valid_count++;
-                        if (t > max_temp)
+                        FSC_JSON_PID_POWER_BUCKET *pb = &g_FscProfileInfo.ProfileInfo[profile_idx].PIDAlt[b];
+                        if (selected_power >= pb->PowerMin && selected_power <= pb->PowerMax)
                         {
-                            max_temp = t;
-                            max_idx = k;
+                            // Copy selected bucket to runtime params
+                            pFSCTempSensorInfo[profile_idx].fscparam.pidparam.Pvalue = pb->Kp;
+                            pFSCTempSensorInfo[profile_idx].fscparam.pidparam.Ivalue = pb->Ki;
+                            pFSCTempSensorInfo[profile_idx].fscparam.pidparam.Dvalue = pb->Kd;
+
+                            if (pb->SetPointType >= 0)
+                            {
+                                pFSCTempSensorInfo[profile_idx].fscparam.pidparam.SetPointType = pb->SetPointType;
+                                pFSCTempSensorInfo[profile_idx].fscparam.pidparam.SetPoint = pb->SetPoint;
+                            }
+                            else if (pb->SetPoint != 0)
+                            {
+                                pFSCTempSensorInfo[profile_idx].fscparam.pidparam.SetPoint = pb->SetPoint;
+                            }
+                            break;
                         }
                     }
                 }
             }
         }
+    }
 
-        pFSCTempSensorInfo[i].Present = any_present;
-        if (valid_count > 0)
+    return FSC_OK;
+}
+
+/**
+ * @fn FSCReadAndAggregateSensors
+ * @brief Phase 1: Read all sensors and aggregate data
+ */
+static int FSCReadAndAggregateSensors(INT8U verbose, int BMCInst)
+{
+    int i;
+
+    for (i = 0; i < g_FscProfileInfo.TotalProfileNum; i++)
+    {
+        if (FSCReadSensorsForProfile(i, verbose, BMCInst) != FSC_OK)
         {
-            if (g_FscProfileInfo.ProfileInfo[i].AggregationMode == AGGREGATION_MAX && max_idx >= 0)
-            {
-                pFSCTempSensorInfo[i].CurrentTemp = max_temp;
-            }
-            else
-            {
-                pFSCTempSensorInfo[i].CurrentTemp = (INT16S)(temp_sum / valid_count);
-            }
+            printf("FSC: Failed to read sensors for profile %d\n", i);
+            return FSC_ERR_IO;
         }
-        else if (!any_present)
+    }
+
+    if (verbose > 1)
+    {
+        FSCPRINT(" > Sensor reading phase complete\n");
+    }
+
+    return FSC_OK;
+}
+
+/**
+ * @fn FSCCalculateProfilePWM
+ * @brief Calculate PWM for a single profile
+ */
+static int FSCCalculateProfilePWM(int profile_idx, INT8U verbose, int BMCInst)
+{
+    INT8U pwm_value = 0;
+    int ret;
+
+    // Set algorithm parameters (only need for non-PID with power buckets)
+    if (g_FscProfileInfo.ProfileInfo[profile_idx].ProfileType == FSC_CTL_PID &&
+        g_FscProfileInfo.ProfileInfo[profile_idx].PIDAltCount == 0)
+    {
+        // Standard PID parameters
+        pFSCTempSensorInfo[profile_idx].fscparam.pidparam.Pvalue =
+            g_FscProfileInfo.ProfileInfo[profile_idx].PIDParameter.Kp;
+        pFSCTempSensorInfo[profile_idx].fscparam.pidparam.Ivalue =
+            g_FscProfileInfo.ProfileInfo[profile_idx].PIDParameter.Ki;
+        pFSCTempSensorInfo[profile_idx].fscparam.pidparam.Dvalue =
+            g_FscProfileInfo.ProfileInfo[profile_idx].PIDParameter.Kd;
+        pFSCTempSensorInfo[profile_idx].fscparam.pidparam.SetPointType =
+            g_FscProfileInfo.ProfileInfo[profile_idx].PIDParameter.SetPointType;
+        pFSCTempSensorInfo[profile_idx].fscparam.pidparam.SetPoint =
+            g_FscProfileInfo.ProfileInfo[profile_idx].PIDParameter.SetPoint;
+    }
+    else if (g_FscProfileInfo.ProfileInfo[profile_idx].ProfileType == FSC_CTL_POLYNOMIAL)
+    {
+        // Polynomial parameters
+        memcpy(&pFSCTempSensorInfo[profile_idx].fscparam.ambientbaseparam,
+               &g_FscProfileInfo.ProfileInfo[profile_idx].PolynomialParameter,
+               sizeof(FSCPolynomial));
+    }
+
+    // Calculate PWM using the algorithm
+    ret = FSCGetPWMValue(&pwm_value, &pFSCTempSensorInfo[profile_idx], verbose, BMCInst);
+    if (ret == FSC_OK)
+    {
+        pFSCTempSensorInfo[profile_idx].CurrentPWM = pwm_value;
+    }
+
+    return ret;
+}
+
+/**
+ * @fn FSCCalculateAllProfilePWMs
+ * @brief Phase 2: Calculate PWM for all profiles
+ */
+static int FSCCalculateAllProfilePWMs(INT8U verbose, int BMCInst)
+{
+    int i;
+
+    for (i = 0; i < g_FscProfileInfo.TotalProfileNum; i++)
+    {
+        if (FSCCalculateProfilePWM(i, verbose, BMCInst) != FSC_OK)
         {
-            // No present sensors; mark as absent
-            pFSCTempSensorInfo[i].Present = FALSE;
+            printf("FSC: Failed to calculate PWM for profile %d\n", i);
+            return FSC_ERR_IO;
         }
-        // MinPWM
-        pFSCTempSensorInfo[i].MinPWM = g_FscSystemInfo.FanInitialPWM;
-        // MaxPWM
-        pFSCTempSensorInfo[i].MaxPWM = g_FscSystemInfo.FanMaxPWM;
-        // Algorithm
-        pFSCTempSensorInfo[i].Algorithm = g_FscProfileInfo.ProfileInfo[i].ProfileType;
-        strcpy((char *)pFSCTempSensorInfo[i].Label,(char *)g_FscProfileInfo.ProfileInfo[i].Label);
+    }
 
-        // Optional dynamic PID selection: if PID with power buckets, determine power from the hottest module
-        float selected_power = 0.0f;
-        int has_pid_bucket = 0;
-        FSC_JSON_PID_POWER_BUCKET selected_bucket = {0};
-        if (g_FscProfileInfo.ProfileInfo[i].ProfileType == FSC_CTL_PID && g_FscProfileInfo.ProfileInfo[i].PIDAltCount > 0)
-        {
-            int pcount = g_FscProfileInfo.ProfileInfo[i].PowerSensorCount;
-            // Choose power sensor aligned with max temperature index when aggregation is MAX
-            int power_idx = 0;
-            if (g_FscProfileInfo.ProfileInfo[i].AggregationMode == AGGREGATION_MAX && max_idx >= 0 && max_idx < pcount)
-            {
-                power_idx = max_idx;
-            }
-            INT8U p_num = 0;
-            if (pcount > 0)
-            {
-                p_num = g_FscProfileInfo.ProfileInfo[i].PowerSensorNums[power_idx];
-                pSensorInfo = API_GetSensorInfo(p_num, 0, BMCInst);
-                if (pSensorInfo && pSensorInfo->Err != CC_DEST_UNAVAILABLE && pSensorInfo->IsSensorPresent)
-                {
-                    if ((pSensorInfo->EventFlags & 0x20) != 0x20)
-                    {
-                        selected_power = (float)pSensorInfo->SensorReading;
-                    }
-                }
-            }
+    if (verbose > 1)
+    {
+        FSCPRINT(" > PWM calculation phase complete\n");
+    }
 
-            // Select bucket by selected_power
-            for (int b = 0; b < g_FscProfileInfo.ProfileInfo[i].PIDAltCount; b++)
-            {
-                FSC_JSON_PID_POWER_BUCKET *pb = &g_FscProfileInfo.ProfileInfo[i].PIDAlt[b];
-                if (selected_power >= pb->PowerMin && selected_power <= pb->PowerMax)
-                {
-                    selected_bucket = *pb;
-                    has_pid_bucket = 1;
-                    break;
-                }
-            }
-        }
+    return FSC_OK;
+}
 
-        switch(pFSCTempSensorInfo[i].Algorithm)
-        {
-            case FSC_CTL_PID:
-                pFSCTempSensorInfo[i].fscparam.pidparam.Pvalue = g_FscProfileInfo.ProfileInfo[i].PIDParameter.Kp;
-                pFSCTempSensorInfo[i].fscparam.pidparam.Ivalue = g_FscProfileInfo.ProfileInfo[i].PIDParameter.Ki;
-                pFSCTempSensorInfo[i].fscparam.pidparam.Dvalue = g_FscProfileInfo.ProfileInfo[i].PIDParameter.Kd;
-                pFSCTempSensorInfo[i].fscparam.pidparam.SetPointType = g_FscProfileInfo.ProfileInfo[i].PIDParameter.SetPointType;
-                pFSCTempSensorInfo[i].fscparam.pidparam.SetPoint = g_FscProfileInfo.ProfileInfo[i].PIDParameter.SetPoint; 
-                // Apply dynamic overrides if bucket selected for this cycle
-                if (has_pid_bucket)
-                {
-                    pFSCTempSensorInfo[i].fscparam.pidparam.Pvalue = selected_bucket.Kp;
-                    pFSCTempSensorInfo[i].fscparam.pidparam.Ivalue = selected_bucket.Ki;
-                    pFSCTempSensorInfo[i].fscparam.pidparam.Dvalue = selected_bucket.Kd;
-                    if (selected_bucket.SetPointType >= 0)
-                    {
-                        pFSCTempSensorInfo[i].fscparam.pidparam.SetPointType = selected_bucket.SetPointType;
-                        pFSCTempSensorInfo[i].fscparam.pidparam.SetPoint = selected_bucket.SetPoint;
-                    }
-                    else if (selected_bucket.SetPoint != 0)
-                    {
-                        pFSCTempSensorInfo[i].fscparam.pidparam.SetPoint = selected_bucket.SetPoint;
-                    }
-                }
-                break;
+/**
+ * @fn FSCDetermineMaxPWM
+ * @brief Phase 3: Determine maximum PWM from all profiles
+ */
+static INT8U FSCDetermineMaxPWM(INT8U verbose)
+{
+    INT8U output_pwm = 0;
+    int i;
 
-            case FSC_CTL_POLYNOMIAL:
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.CurveType = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.CurveType;
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.LoadScenario = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.LoadScenario;
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.CoeffCount = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.CoeffCount;
-                memcpy(pFSCTempSensorInfo[i].fscparam.ambientbaseparam.Coefficients,
-                    g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.Coefficients,
-                    sizeof(float) * MAX_POLYNOMIAL_COEFFS);
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.PointCount = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.PointCount;
-                memcpy(pFSCTempSensorInfo[i].fscparam.ambientbaseparam.PiecewisePoints, 
-                       g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.PiecewisePoints,
-                       sizeof(g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.PiecewisePoints));
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.FallingHyst = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.FallingHyst;
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.MaxRisingRate = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.MaxRisingRate;
-                pFSCTempSensorInfo[i].fscparam.ambientbaseparam.MaxFallingRate = g_FscProfileInfo.ProfileInfo[i].PolynomialParameter.MaxFallingRate;
-                break;
-
-            default:
-                FSCPRINT("Invalid Cooling algorithm. \n");
-                return -1;
-        }
-
-        FSCGetPWMValue(&pwm_value, &pFSCTempSensorInfo[i], verbose, BMCInst);
-        pFSCTempSensorInfo[i].CurrentPWM = pwm_value;
-
+    for (i = 0; i < g_FscProfileInfo.TotalProfileNum; i++)
+    {
         if (pFSCTempSensorInfo[i].CurrentPWM > output_pwm)
         {
             output_pwm = pFSCTempSensorInfo[i].CurrentPWM;
         }
     }
 
-    if(verbose > 0)
+    if (verbose > 0)
     {
-        FSCPRINT("Output PWM = %d\n", output_pwm);
+        FSCPRINT(" > Determined max PWM: %d\n", output_pwm);
     }
-    *pwm = output_pwm;
 
-    return 0;
+    return output_pwm;
+}
+
+/**
+ * @fn FSCUpdateOutputPWM
+ * @brief Calculates the required fan PWM value based on all sensor readings.
+ * Three-phase processing: 1) Read sensors, 2) Calculate PWMs, 3) Determine max
+ */
+static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
+{
+    // Phase 1: Read all sensors and aggregate data
+    if (FSCReadAndAggregateSensors(verbose, BMCInst) != FSC_OK)
+    {
+        printf("FSC: Sensor read phase failed\n");
+        return FSC_ERR_IO;
+    }
+
+    // Phase 2: Calculate PWM for all profiles
+    if (FSCCalculateAllProfilePWMs(verbose, BMCInst) != FSC_OK)
+    {
+        printf("FSC: PWM calculation phase failed\n");
+        return FSC_ERR_IO;
+    }
+
+    // Phase 3: Determine max PWM
+    *pwm = FSCDetermineMaxPWM(verbose);
+
+    return FSC_OK;
 }
 
 /**
@@ -274,8 +370,8 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
 int FanControlLoop(int BMCInst)
 {
     static bool init_flag = false;
+    static INT8U verbose = 0;
     INT8U pwm = 0;
-    INT8U verbose = 0;
 
     if (!init_flag)
     {
