@@ -472,11 +472,15 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
             goto END;
         }
 
-        pFscProfileInfo->ProfileInfo[i].ProfileIndex = (INT8U) dTmp;
+    pFscProfileInfo->ProfileInfo[i].ProfileIndex = (INT8U) dTmp;
 
-        // Initialize multi-sensor grouping defaults
-        pFscProfileInfo->ProfileInfo[i].SensorCount = 0;
-        memset(pFscProfileInfo->ProfileInfo[i].SensorNums, 0, sizeof(pFscProfileInfo->ProfileInfo[i].SensorNums));
+    // Initialize multi-sensor grouping defaults
+    pFscProfileInfo->ProfileInfo[i].SensorCount = 0;
+    memset(pFscProfileInfo->ProfileInfo[i].SensorNums, 0, sizeof(pFscProfileInfo->ProfileInfo[i].SensorNums));
+    pFscProfileInfo->ProfileInfo[i].AggregationMode = AGGREGATION_AVERAGE; // default to average
+    pFscProfileInfo->ProfileInfo[i].PowerSensorCount = 0;
+    memset(pFscProfileInfo->ProfileInfo[i].PowerSensorNums, 0, sizeof(pFscProfileInfo->ProfileInfo[i].PowerSensorNums));
+    pFscProfileInfo->ProfileInfo[i].PIDAltCount = 0;
 
         // Prefer sensor_nums array if provided; otherwise fall back to single sensor_num
         cJSON *pSensorNumsArray = cJSON_GetObjectItem(pProfileItemInfo, "sensor_nums");
@@ -516,6 +520,41 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
             pFscProfileInfo->ProfileInfo[i].SensorNum = (INT8U) dTmp;
             pFscProfileInfo->ProfileInfo[i].SensorCount = 1;
             pFscProfileInfo->ProfileInfo[i].SensorNums[0] = pFscProfileInfo->ProfileInfo[i].SensorNum;
+        }
+
+        // Aggregation mode: average or max
+        if(ConvertcJSONToValue(pProfileItemInfo, "aggregation", cString) == 0 && strlen(cString))
+        {
+            if (strcmp(cString, "max") == 0)
+            {
+                pFscProfileInfo->ProfileInfo[i].AggregationMode = AGGREGATION_MAX;
+            }
+            else
+            {
+                pFscProfileInfo->ProfileInfo[i].AggregationMode = AGGREGATION_AVERAGE;
+            }
+        }
+
+        // Optional: power_sensor_nums mapping for group
+        cJSON *pPowerSensorNumsArray = cJSON_GetObjectItem(pProfileItemInfo, "power_sensor_nums");
+        if (pPowerSensorNumsArray && cJSON_IsArray(pPowerSensorNumsArray))
+        {
+            int pArrSize = cJSON_GetArraySize(pPowerSensorNumsArray);
+            if (pArrSize > MAX_SENSOR_GROUP_SIZE)
+            {
+                pArrSize = MAX_SENSOR_GROUP_SIZE;
+            }
+            pFscProfileInfo->ProfileInfo[i].PowerSensorCount = (INT8U)pArrSize;
+            for (int j = 0; j < pArrSize; j++)
+            {
+                cJSON *pItem = cJSON_GetArrayItem(pPowerSensorNumsArray, j);
+                if (!pItem)
+                {
+                    printf("fsc_parser: get power_sensor_nums[%d] error\n", j);
+                    goto END;
+                }
+                pFscProfileInfo->ProfileInfo[i].PowerSensorNums[j] = (INT8U)cJSON_GetNumberValue(pItem);
+            }
         }
 
         if(ConvertcJSONToValue(pProfileItemInfo, "sensor_name", cString) || !strlen(cString))
@@ -578,6 +617,44 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
                 goto END;
             }
             pFscProfileInfo->ProfileInfo[i].PIDParameter.Kd = dTmp;
+
+            // Optional: pid_power_buckets for dynamic tuning by module power
+            cJSON *pPidBuckets = cJSON_GetObjectItem(pProfileItemInfo, "pid_power_buckets");
+            if (pPidBuckets && cJSON_IsArray(pPidBuckets))
+            {
+                int bSize = cJSON_GetArraySize(pPidBuckets);
+                if (bSize > MAX_PID_POWER_BUCKETS) bSize = MAX_PID_POWER_BUCKETS;
+                pFscProfileInfo->ProfileInfo[i].PIDAltCount = (INT8U)bSize;
+                for (int j = 0; j < bSize; j++)
+                {
+                    cJSON *pB = cJSON_GetArrayItem(pPidBuckets, j);
+                    double tval;
+                    if (!pB)
+                    {
+                        printf("fsc_parser: pid_power_buckets[%d] missing\n", j);
+                        goto END;
+                    }
+                    if(ConvertcJSONToValue(pB, "power_min", &tval)) { printf("fsc_parser: pid_bucket power_min error\n"); goto END; }
+                    pFscProfileInfo->ProfileInfo[i].PIDAlt[j].PowerMin = (float)tval;
+                    if(ConvertcJSONToValue(pB, "power_max", &tval)) { printf("fsc_parser: pid_bucket power_max error\n"); goto END; }
+                    pFscProfileInfo->ProfileInfo[i].PIDAlt[j].PowerMax = (float)tval;
+                    if(ConvertcJSONToValue(pB, "kp", &tval)) { printf("fsc_parser: pid_bucket kp error\n"); goto END; }
+                    pFscProfileInfo->ProfileInfo[i].PIDAlt[j].Kp = tval;
+                    if(ConvertcJSONToValue(pB, "ki", &tval)) { printf("fsc_parser: pid_bucket ki error\n"); goto END; }
+                    pFscProfileInfo->ProfileInfo[i].PIDAlt[j].Ki = tval;
+                    if(ConvertcJSONToValue(pB, "kd", &tval)) { printf("fsc_parser: pid_bucket kd error\n"); goto END; }
+                    pFscProfileInfo->ProfileInfo[i].PIDAlt[j].Kd = tval;
+                    // Optional overrides
+                    if(ConvertcJSONToValue(pB, "setpoint", &tval) == 0)
+                        pFscProfileInfo->ProfileInfo[i].PIDAlt[j].SetPoint = tval;
+                    else
+                        pFscProfileInfo->ProfileInfo[i].PIDAlt[j].SetPoint = 0;
+                    if(ConvertcJSONToValue(pB, "setpoint_type", &tval) == 0)
+                        pFscProfileInfo->ProfileInfo[i].PIDAlt[j].SetPointType = (signed char)tval;
+                    else
+                        pFscProfileInfo->ProfileInfo[i].PIDAlt[j].SetPointType = -1;
+                }
+            }
         }
         else if(strcmp(cString, CJSON_ProfileType_Polynomial) == 0)
         {

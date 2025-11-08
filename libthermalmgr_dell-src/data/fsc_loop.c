@@ -88,7 +88,7 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
 
     for (i = 0; i < g_FscProfileInfo.TotalProfileNum; i++)
     {
-        // Multi-sensor averaging support: use sensor_nums if provided
+        // Multi-sensor support: use sensor_nums if provided
         int sensor_count = g_FscProfileInfo.ProfileInfo[i].SensorCount;
         if (sensor_count <= 0)
         {
@@ -98,6 +98,8 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
 
         long temp_sum = 0;
         int valid_count = 0;
+        INT16S max_temp = -32768;
+        int max_idx = -1;
         INT8U any_present = FALSE;
 
         // For backward compatibility, keep the first sensor number
@@ -116,8 +118,14 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
                     // Bit 5 - Unable to read
                     if ((pSensorInfo->EventFlags & 0x20) != 0x20)
                     {
-                        temp_sum += pSensorInfo->SensorReading;
+                        INT16S t = pSensorInfo->SensorReading;
+                        temp_sum += t;
                         valid_count++;
+                        if (t > max_temp)
+                        {
+                            max_temp = t;
+                            max_idx = k;
+                        }
                     }
                 }
             }
@@ -126,7 +134,14 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
         pFSCTempSensorInfo[i].Present = any_present;
         if (valid_count > 0)
         {
-            pFSCTempSensorInfo[i].CurrentTemp = (INT16S)(temp_sum / valid_count);
+            if (g_FscProfileInfo.ProfileInfo[i].AggregationMode == AGGREGATION_MAX && max_idx >= 0)
+            {
+                pFSCTempSensorInfo[i].CurrentTemp = max_temp;
+            }
+            else
+            {
+                pFSCTempSensorInfo[i].CurrentTemp = (INT16S)(temp_sum / valid_count);
+            }
         }
         else if (!any_present)
         {
@@ -141,6 +156,46 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
         pFSCTempSensorInfo[i].Algorithm = g_FscProfileInfo.ProfileInfo[i].ProfileType;
         strcpy((char *)pFSCTempSensorInfo[i].Label,(char *)g_FscProfileInfo.ProfileInfo[i].Label);
 
+        // Optional dynamic PID selection: if PID with power buckets, determine power from the hottest module
+        float selected_power = 0.0f;
+        int has_pid_bucket = 0;
+        FSC_JSON_PID_POWER_BUCKET selected_bucket = {0};
+        if (g_FscProfileInfo.ProfileInfo[i].ProfileType == FSC_CTL_PID && g_FscProfileInfo.ProfileInfo[i].PIDAltCount > 0)
+        {
+            int pcount = g_FscProfileInfo.ProfileInfo[i].PowerSensorCount;
+            // Choose power sensor aligned with max temperature index when aggregation is MAX
+            int power_idx = 0;
+            if (g_FscProfileInfo.ProfileInfo[i].AggregationMode == AGGREGATION_MAX && max_idx >= 0 && max_idx < pcount)
+            {
+                power_idx = max_idx;
+            }
+            INT8U p_num = 0;
+            if (pcount > 0)
+            {
+                p_num = g_FscProfileInfo.ProfileInfo[i].PowerSensorNums[power_idx];
+                pSensorInfo = API_GetSensorInfo(p_num, 0, BMCInst);
+                if (pSensorInfo && pSensorInfo->Err != CC_DEST_UNAVAILABLE && pSensorInfo->IsSensorPresent)
+                {
+                    if ((pSensorInfo->EventFlags & 0x20) != 0x20)
+                    {
+                        selected_power = (float)pSensorInfo->SensorReading;
+                    }
+                }
+            }
+
+            // Select bucket by selected_power
+            for (int b = 0; b < g_FscProfileInfo.ProfileInfo[i].PIDAltCount; b++)
+            {
+                FSC_JSON_PID_POWER_BUCKET *pb = &g_FscProfileInfo.ProfileInfo[i].PIDAlt[b];
+                if (selected_power >= pb->PowerMin && selected_power <= pb->PowerMax)
+                {
+                    selected_bucket = *pb;
+                    has_pid_bucket = 1;
+                    break;
+                }
+            }
+        }
+
         switch(pFSCTempSensorInfo[i].Algorithm)
         {
             case FSC_CTL_PID:
@@ -149,6 +204,22 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
                 pFSCTempSensorInfo[i].fscparam.pidparam.Dvalue = g_FscProfileInfo.ProfileInfo[i].PIDParameter.Kd;
                 pFSCTempSensorInfo[i].fscparam.pidparam.SetPointType = g_FscProfileInfo.ProfileInfo[i].PIDParameter.SetPointType;
                 pFSCTempSensorInfo[i].fscparam.pidparam.SetPoint = g_FscProfileInfo.ProfileInfo[i].PIDParameter.SetPoint; 
+                // Apply dynamic overrides if bucket selected for this cycle
+                if (has_pid_bucket)
+                {
+                    pFSCTempSensorInfo[i].fscparam.pidparam.Pvalue = selected_bucket.Kp;
+                    pFSCTempSensorInfo[i].fscparam.pidparam.Ivalue = selected_bucket.Ki;
+                    pFSCTempSensorInfo[i].fscparam.pidparam.Dvalue = selected_bucket.Kd;
+                    if (selected_bucket.SetPointType >= 0)
+                    {
+                        pFSCTempSensorInfo[i].fscparam.pidparam.SetPointType = selected_bucket.SetPointType;
+                        pFSCTempSensorInfo[i].fscparam.pidparam.SetPoint = selected_bucket.SetPoint;
+                    }
+                    else if (selected_bucket.SetPoint != 0)
+                    {
+                        pFSCTempSensorInfo[i].fscparam.pidparam.SetPoint = selected_bucket.SetPoint;
+                    }
+                }
                 break;
 
             case FSC_CTL_POLYNOMIAL:
