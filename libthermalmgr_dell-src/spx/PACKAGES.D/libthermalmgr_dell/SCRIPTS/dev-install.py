@@ -45,11 +45,7 @@ def build_install():
     # Install all FSC configuration files to /conf/fsc/
     config_files = [
         "fsc_z9964f_b2f.json",
-        "fsc_z9964f_f2b.json", 
-        "fsc_z9964fl.json",
-        "fsc_z9964f_b2f_ambient.json",
-        "fsc_polynomial_example.json",
-        "fsc_b2f_polynomial_calibration.json"
+        "fsc_z9964f_f2b.json"
     ]
     
     for config_file in config_files:
@@ -60,7 +56,6 @@ def build_install():
     # Install default configuration files to /etc/defconfig/
     retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+"fsc_z9964f_b2f.json", IMAGETREE+"/etc/defconfig/")
     retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+"fsc_z9964f_f2b.json", IMAGETREE+"/etc/defconfig/")
-    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+"fsc_z9964fl.json", IMAGETREE+"/etc/defconfig/")
     return 0
 #-------------------------------------------------------------------------------------------------------
 #				Rules for Debug Install

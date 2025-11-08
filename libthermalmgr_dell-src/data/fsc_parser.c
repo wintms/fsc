@@ -111,24 +111,6 @@ int ConvertcJSONToValue(cJSON *  pMap, char *pcKey, void  *pValue)
     return ret;
 }
 
-/* Convenience helpers for cleaner callsites */
-static int json_get_uint8(cJSON *obj, const char *key, INT8U *out)
-{
-    double tmp;
-    if (ConvertcJSONToValue(obj, (char*)key, &tmp)) return -1;
-    *out = (INT8U)tmp;
-    return 0;
-}
-
-static int json_get_string(cJSON *obj, const char *key, char *out, size_t outlen)
-{
-    char buf[LABEL_LENGTH_MAX] = {0};
-    if (ConvertcJSONToValue(obj, (char*)key, buf)) return -1;
-    if (!strlen(buf)) return -1;
-    strncpy(out, buf, outlen - 1);
-    out[outlen - 1] = '\0';
-    return 0;
-}
 
 /**
  * @fn ParseAmbientCalibrationFromJson
@@ -300,7 +282,7 @@ int ParseDebugVerboseFromJson(char *filename, INT8U *verbose)
     file = ReadFileToString(filename);
     if (!file)
     {
-        printf("fsc_parser: debug_verbose file read error.\n");
+        printf("fsc_parser: debug_verbose read error.\n");
         goto END;
     }
     cjson_input = cJSON_Parse((const char *)file);

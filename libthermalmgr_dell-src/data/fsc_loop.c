@@ -181,9 +181,9 @@ int FanControlLoop(int BMCInst)
 
     if (!init_flag)
     {
+        init_flag = true;
         if (0 != FSCInitialize(&verbose))
         {
-            init_flag = true;
             TCRIT("FSC: Initialization failed. Fan control will not run.\n");
             return -1;
         }
