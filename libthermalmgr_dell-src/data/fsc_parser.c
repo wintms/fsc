@@ -155,7 +155,7 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
             FSCPRINT("   Piecewise points: count=%d\n", pAmbientCalibration->PointCount);
             for (int p = 0; p < pAmbientCalibration->PointCount && p < MAX_PIECEWISE_POINTS; p++)
             {
-                FSCPRINT("     point[%02d]: pwm=%.3f, delta_temp=%.3f\n",
+                FSCPRINT("     point[%02d]: pwm=%d, delta_temp=%.3f\n",
                          p, pAmbientCalibration->PiecewisePoints[p].pwm,
                          pAmbientCalibration->PiecewisePoints[p].delta_temp);
             }
