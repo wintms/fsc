@@ -2,7 +2,7 @@ Source : libthermalmgr_dell
 Version : 13.0.0.0.0
 SPX-Version : 4.0
 SPX-Format : 2.0
-Owner : CLS
+Owner : Dell
 Maintainer : Winter Chen (wintchen@celestica.com)
 License : AMI
 Source-Location : AMI

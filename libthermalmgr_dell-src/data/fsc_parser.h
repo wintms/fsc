@@ -24,6 +24,7 @@ typedef struct
     INT8U   FSCMode;
     char    FSCVersion[16];
     INT8U   FanMaxPWM;
+    INT8U   FanMinPWM;
     INT8U   FanInitialPWM;
 } PACKED FSC_JSON_SYSTEM_INFO;
 
@@ -73,7 +74,6 @@ typedef struct
     INT8U   AggregationMode;
     INT8U   PowerSensorCount;
     INT8U   PowerSensorNums[MAX_SENSOR_GROUP_SIZE];
-    char    SensorName[16];
     INT8U   ProfileType;
     FSC_JSON_PROFILE_PID    PIDParameter;
     INT8U   PIDAltCount;

@@ -436,9 +436,6 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
                              (int *)&pFscProfileInfo->ProfileInfo[i].PowerSensorCount);
         }
 
-        PARSE_STRING_OR_GOTO(pProfileItem, "sensor_name", pFscProfileInfo->ProfileInfo[i].SensorName,
-                            sizeof(pFscProfileInfo->ProfileInfo[i].SensorName), "get sensor_name");
-
         PARSE_STRING_OR_GOTO(pProfileItem, "label", pFscProfileInfo->ProfileInfo[i].Label,
                             sizeof(pFscProfileInfo->ProfileInfo[i].Label), "get label");
 
@@ -510,10 +507,13 @@ int ParseSystemInfoFromJson(char *filename, FSC_JSON_SYSTEM_INFO *pFscSystemInfo
     PARSE_DOUBLE_OR_GOTO(pSystemInfo, "fan_max_pwm", dTmp, "get fan_max_pwm");
     pFscSystemInfo->FanMaxPWM = (INT8U)dTmp;
 
+    PARSE_DOUBLE_OR_GOTO(pSystemInfo, "fan_min_pwm", dTmp, "get fan_min_pwm");
+    pFscSystemInfo->FanMinPWM = (INT8U)dTmp;
+
     ret = FSC_OK;
 
-    DEBUG_PARSE(verbose, " > Parsed system_info: mode=%d, maxPWM=%d%%\n",
-               pFscSystemInfo->FSCMode, pFscSystemInfo->FanMaxPWM);
+    DEBUG_PARSE(verbose, " > Parsed system_info: mode=%d, maxPWM=%d%%, minPWM=%d%%, initialPWM=%d%%\n",
+               pFscSystemInfo->FSCMode, pFscSystemInfo->FanMaxPWM, pFscSystemInfo->FanMinPWM, pFscSystemInfo->FanInitialPWM);
 
 cleanup:
     FscParseContext_Cleanup(&ctx);

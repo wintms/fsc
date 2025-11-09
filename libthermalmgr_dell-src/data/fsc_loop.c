@@ -154,7 +154,7 @@ static int FSCReadSensorsForProfile(int profile_idx, INT8U verbose, int BMCInst)
     }
 
     // Store metadata
-    pFSCTempSensorInfo[profile_idx].MinPWM = g_FscSystemInfo.FanInitialPWM;
+    pFSCTempSensorInfo[profile_idx].MinPWM = g_FscSystemInfo.FanMinPWM;
     pFSCTempSensorInfo[profile_idx].MaxPWM = g_FscSystemInfo.FanMaxPWM;
     pFSCTempSensorInfo[profile_idx].Algorithm = g_FscProfileInfo.ProfileInfo[profile_idx].ProfileType;
     strncpy((char *)pFSCTempSensorInfo[profile_idx].Label,
@@ -345,6 +345,7 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
     // Phase 1: Read all sensors and aggregate data
     if (FSCReadAndAggregateSensors(verbose, BMCInst) != FSC_OK)
     {
+        *pwm = g_FscSystemInfo.FanMaxPWM;
         printf("FSC: Sensor read phase failed\n");
         return FSC_ERR_IO;
     }
@@ -352,6 +353,7 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
     // Phase 2: Calculate PWM for all profiles
     if (FSCCalculateAllProfilePWMs(verbose, BMCInst) != FSC_OK)
     {
+        *pwm = g_FscSystemInfo.FanMaxPWM;
         printf("FSC: PWM calculation phase failed\n");
         return FSC_ERR_IO;
     }
@@ -396,6 +398,15 @@ int FanControlLoop(int BMCInst)
     }
 
     FSCUpdateOutputPWM(&pwm, verbose, BMCInst);
+
+    if (pwm > g_FscSystemInfo.FanMaxPWM)
+    {
+        pwm = g_FscSystemInfo.FanMaxPWM;
+    }
+    else if (pwm < g_FscSystemInfo.FanMinPWM)
+    {
+        pwm = g_FscSystemInfo.FanMinPWM;
+    }
 
     // Set the calculated PWM to all chassis fans
     OEM_SetAllFanTraysPWM(pwm);
