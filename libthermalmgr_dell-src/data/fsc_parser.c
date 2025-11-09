@@ -155,7 +155,7 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
             FSCPRINT("   Piecewise points: count=%d\n", pAmbientCalibration->PointCount);
             for (int p = 0; p < pAmbientCalibration->PointCount && p < MAX_PIECEWISE_POINTS; p++)
             {
-                FSCPRINT("     point[%02d]: pwm=%d, delta_temp=%.3f\n",
+                FSCPRINT("     point[%02d]: pwm=%.3f, delta_temp=%.3f\n",
                          p, pAmbientCalibration->PiecewisePoints[p].pwm,
                          pAmbientCalibration->PiecewisePoints[p].delta_temp);
             }
@@ -535,7 +535,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
                     FSCPRINT("   Piecewise points: count=%d\n", Q->PointCount);
                     for (int p = 0; p < Q->PointCount && p < MAX_PIECEWISE_POINTS; p++)
                     {
-                        FSCPRINT("     point[%02d]: temp=%d, pwm=%d\n", p, Q->PiecewisePoints[p].temp, Q->PiecewisePoints[p].pwm);
+                        FSCPRINT("     point[%02d]: temp=%.3f, pwm=%.3f\n", p, Q->PiecewisePoints[p].temp, Q->PiecewisePoints[p].pwm);
                     }
                 }
                 FSCPRINT("   Limits: falling_hyst=%.3f, max_rising_rate=%d, max_falling_rate=%d\n",

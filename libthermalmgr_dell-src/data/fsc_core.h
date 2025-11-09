@@ -41,7 +41,6 @@
 
 #define FSC_PROFILE_MAX_NUM  20
 
-#pragma pack( 1 )
 typedef struct
 {
     float Pvalue;
@@ -79,7 +78,7 @@ typedef struct
     float Coefficients[MAX_POLYNOMIAL_COEFFS]; // Polynomial coefficients for PWM = f(Ambient_temp)
     INT8U PointCount;                       // Number of points for piecewise linear
     FSCMath_TempPwm PiecewisePoints[MAX_PIECEWISE_POINTS];
-    INT8U FallingHyst;                      // Falling hysteresis in degrees C (default 2)
+    float FallingHyst;                      // Falling hysteresis in degrees C (float)
     INT8U MaxRisingRate;                    // Maximum rising rate %/cycle (default 10)
     INT8U MaxFallingRate;                   // Maximum falling rate %/cycle (default 5)
 } FSCPolynomial;
@@ -106,7 +105,6 @@ typedef struct
     }fscparam;
 
 } FSCTempSensor;
-#pragma pack()
 
 extern FSCTempSensor pFSCTempSensorInfo[FSC_PROFILE_MAX_NUM];
 extern FSCAmbientCalibration g_AmbientCalibration;

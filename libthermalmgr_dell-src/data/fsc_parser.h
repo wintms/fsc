@@ -19,7 +19,6 @@
 #define AGGREGATION_AVERAGE 0
 #define AGGREGATION_MAX     1
 
-#pragma pack( 1 )
 typedef struct
 {
     INT8U   FSCMode;
@@ -49,21 +48,8 @@ typedef struct
     double Kd;
 } FSC_JSON_PID_POWER_BUCKET;
 
-typedef struct
-{
-    INT8U CurveType;
-    INT8U LoadScenario;
-    INT8U CoeffCount;
-    float Coefficients[MAX_POLYNOMIAL_COEFFS];
-    INT8U PointCount;
-    struct {
-        INT8U temp;
-        INT8U pwm;
-    } PiecewisePoints[MAX_PIECEWISE_POINTS];
-    float FallingHyst;
-    INT8U MaxRisingRate;
-    INT8U MaxFallingRate;
-} FSC_JSON_PROFILE_POLYNOMIAL;
+// Align JSON polynomial struct layout with core type for safe memcpy
+typedef FSCPolynomial FSC_JSON_PROFILE_POLYNOMIAL;
 
 typedef struct
 {
@@ -89,7 +75,6 @@ typedef struct
     INT8U   TotalPIDProfileNum;
     FSC_JSON_PROFILE_INFO   ProfileInfo[FSC_PROFILE_MAX_NUM];
 } FSC_JSON_ALL_PROFILES_INFO;
-#pragma pack()
 
 extern FSC_JSON_SYSTEM_INFO            g_FscSystemInfo;
 extern FSC_JSON_ALL_PROFILES_INFO      g_FscProfileInfo;
