@@ -80,6 +80,11 @@ static INT8U FSCDetermineMaxPWM(INT8U verbose);
  */
 static int FSCReadSensorsForProfile(int profile_idx, INT8U verbose, int BMCInst)
 {
+    if (0)
+    {
+        verbose = verbose;
+    }
+
     SensorInfo_T* pSensorInfo = NULL;
     int sensor_count = g_FscProfileInfo.ProfileInfo[profile_idx].SensorCount;
 

@@ -16,6 +16,7 @@
 #include "fsc.h"
 #include "fsc_utils.h"
 #include "fsc_math.h"
+#include "fsc_common.h"
 
 FSCTempSensor pFSCTempSensorInfo[FSC_SENSOR_CNT_MAX];
 FSCAmbientCalibration g_AmbientCalibration;
@@ -70,6 +71,11 @@ float FSCGetAmbientTemperature(INT16S inlet_temp, INT8U last_pwm, INT8U verbose)
 *---------------------------------------------------------------------------*/
 int FSCGetPWMValue_PID(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst)
 {
+    if (0)
+    {
+        BMCInst = BMCInst;
+    }
+
     FSCPID pPIDInfo;
     float CurrentPWM = 0.0f;
     INT16S p_temp = 0;
@@ -145,6 +151,10 @@ int FSCGetPWMValue_PID(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U
 *---------------------------------------------------------------------------*/
 static INT16S FSCCalculatePolynomialPWM(const FSCPolynomial *pPoly, float ambient_temp, INT8U verbose)
 {
+    if (0)
+    {
+        verbose = verbose;
+    }
     INT16S pwm;
 
     if (pPoly->CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
@@ -171,6 +181,11 @@ static INT16S FSCCalculatePolynomialPWM(const FSCPolynomial *pPoly, float ambien
 *---------------------------------------------------------------------------*/
 int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst)
 {
+    if (0)
+    {
+        BMCInst = BMCInst;
+    }
+
     FSCPolynomial *pPoly;
     float ambient_temp;
     INT16S CurrentPWM;

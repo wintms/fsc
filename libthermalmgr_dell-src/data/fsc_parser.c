@@ -291,7 +291,7 @@ cleanup:
 static int ParsePolynomialProfile(FSC_JSON_PROFILE_INFO *pProfile, cJSON *pProfileItem)
 {
     double dTmp;
-    int i, j;
+    int j;
 
     PARSE_DOUBLE_OR_GOTO(pProfileItem, "curve_type", dTmp, "ambient_base: get curve_type");
     pProfile->PolynomialParameter.CurveType = (INT8U)dTmp;

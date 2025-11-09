@@ -40,7 +40,7 @@
 
 #define FSC_SENSOR_CNT_MAX  20
 
-
+#pragma pack( 1 )
 typedef struct
 {
     float Pvalue;
@@ -48,7 +48,7 @@ typedef struct
     float Dvalue;    
     signed char SetPoint;
     signed char SetPointType;
-} PACKED FSCPID;
+} FSCPID;
 
 typedef struct
 {
@@ -57,7 +57,7 @@ typedef struct
 	INT8U PwmMin;
 	INT8U PwmMax;
 	INT8U FallingHyst;
-} PACKED FSCLinear;
+} FSCLinear;
 
 // Ambient calibration structure for inlet sensor correction
 typedef struct
@@ -70,7 +70,7 @@ typedef struct
         INT8U pwm;                          // PWM value
         float delta_temp;                   // Temperature delta at this PWM
     } PiecewisePoints[MAX_PIECEWISE_POINTS];
-} PACKED FSCAmbientCalibration;
+} FSCAmbientCalibration;
 
 // Ambient base curve structure for environment temperature to PWM mapping
 typedef struct
@@ -87,7 +87,7 @@ typedef struct
     INT8U FallingHyst;                      // Falling hysteresis in degrees C (default 2)
     INT8U MaxRisingRate;                    // Maximum rising rate %/cycle (default 10)
     INT8U MaxFallingRate;                   // Maximum falling rate %/cycle (default 5)
-} PACKED FSCPolynomial;
+} FSCPolynomial;
 
 typedef struct
 {
@@ -110,7 +110,8 @@ typedef struct
         FSCPolynomial ambientbaseparam;
     }fscparam;
 
-} PACKED FSCTempSensor;
+} FSCTempSensor;
+#pragma pack()
 
 extern FSCTempSensor pFSCTempSensorInfo[FSC_SENSOR_CNT_MAX];
 extern FSCAmbientCalibration g_AmbientCalibration;
