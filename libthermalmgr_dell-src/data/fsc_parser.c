@@ -83,6 +83,11 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
     PARSE_DOUBLE_OR_GOTO(pAmbientCalInfo, "cal_type", dTmp, "get cal_type error");
     pAmbientCalibration->CalType = (INT8U)dTmp;
 
+    if (verbose > 2)
+    {
+        FSCPRINT(" > Ambient calibration: cal_type=%d\n", pAmbientCalibration->CalType);
+    }
+
     if (pAmbientCalibration->CalType == FSC_AMBIENT_CAL_POLYNOMIAL)
     {
         PARSE_DOUBLE_OR_GOTO(pAmbientCalInfo, "coeff_count", dTmp, "get coeff_count error");
@@ -104,6 +109,16 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
                 goto cleanup;
             }
             pAmbientCalibration->Coefficients[i] = (float)cJSON_GetNumberValue(pCoeffItem);
+        }
+
+        // Detailed logging for polynomial coefficients
+        if (verbose > 2)
+        {
+            FSCPRINT("   Polynomial: coeff_count=%d\n", pAmbientCalibration->CoeffCount);
+            for (int c = 0; c < pAmbientCalibration->CoeffCount && c < MAX_POLYNOMIAL_COEFFS; c++)
+            {
+                FSCPRINT("     coeff[%02d]=%.6f\n", c, pAmbientCalibration->Coefficients[c]);
+            }
         }
     }
     else if (pAmbientCalibration->CalType == FSC_AMBIENT_CAL_PIECEWISE)
@@ -132,6 +147,18 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
 
             PARSE_DOUBLE_OR_GOTO(pPointItem, "delta_temp", dTmp, "get delta_temp");
             pAmbientCalibration->PiecewisePoints[i].delta_temp = (float)dTmp;
+        }
+
+        // Detailed logging for piecewise points
+        if (verbose > 2)
+        {
+            FSCPRINT("   Piecewise points: count=%d\n", pAmbientCalibration->PointCount);
+            for (int p = 0; p < pAmbientCalibration->PointCount && p < MAX_PIECEWISE_POINTS; p++)
+            {
+                FSCPRINT("     point[%02d]: pwm=%.3f, delta_temp=%.3f\n",
+                         p, pAmbientCalibration->PiecewisePoints[p].pwm,
+                         pAmbientCalibration->PiecewisePoints[p].delta_temp);
+            }
         }
     }
 
@@ -178,7 +205,7 @@ cleanup:
  * @fn ParseArrayToUint8
  * @brief Helper to parse JSON array to uint8_t array
  */
-static int ParseArrayToUint8(cJSON *pArray, INT8U *dest, int max_count, int *out_count)
+static int ParseArrayToUint8(cJSON *pArray, INT8U *dest, int max_count, INT8U *out_count)
 {
     int arrSize;
     int i;
@@ -209,7 +236,7 @@ static int ParseArrayToUint8(cJSON *pArray, INT8U *dest, int max_count, int *out
         dest[i] = (INT8U)cJSON_GetNumberValue(pItem);
     }
 
-    *out_count = arrSize;
+    *out_count = (INT8U)arrSize;
     return 0;
 }
 
@@ -405,7 +432,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
             int result = ParseArrayToUint8(pSensorNumsArray,
                                           pFscProfileInfo->ProfileInfo[i].SensorNums,
                                           MAX_SENSOR_GROUP_SIZE,
-                                          (int *)&pFscProfileInfo->ProfileInfo[i].SensorCount);
+                                          &pFscProfileInfo->ProfileInfo[i].SensorCount);
             if (result != 0) goto cleanup;
             pFscProfileInfo->ProfileInfo[i].SensorNum = pFscProfileInfo->ProfileInfo[i].SensorNums[0];
         }
@@ -433,7 +460,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
             ParseArrayToUint8(pPowerSensorNumsArray,
                              pFscProfileInfo->ProfileInfo[i].PowerSensorNums,
                              MAX_SENSOR_GROUP_SIZE,
-                             (int *)&pFscProfileInfo->ProfileInfo[i].PowerSensorCount);
+                             &pFscProfileInfo->ProfileInfo[i].PowerSensorCount);
         }
 
         PARSE_STRING_OR_GOTO(pProfileItem, "label", pFscProfileInfo->ProfileInfo[i].Label,
