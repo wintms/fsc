@@ -39,7 +39,7 @@
 #define SENSOR_SCAN_DISABLE         0
 #define SENSOR_SCAN_ENABLE          1
 
-#define FSC_SENSOR_CNT_MAX  20
+#define FSC_PROFILE_MAX_NUM  20
 
 #pragma pack( 1 )
 typedef struct
@@ -108,7 +108,7 @@ typedef struct
 } FSCTempSensor;
 #pragma pack()
 
-extern FSCTempSensor pFSCTempSensorInfo[FSC_SENSOR_CNT_MAX];
+extern FSCTempSensor pFSCTempSensorInfo[FSC_PROFILE_MAX_NUM];
 extern FSCAmbientCalibration g_AmbientCalibration;
 
 extern int FSCGetPWMValue( INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U verbose, int BMCInst );

@@ -407,7 +407,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
     pFscProfileInfo->TotalLinearProfileNum = 0;
     pFscProfileInfo->TotalPIDProfileNum = 0;
 
-    if (FSC_SENSOR_CNT_MAX < pFscProfileInfo->TotalProfileNum) goto cleanup;
+    if (FSC_PROFILE_MAX_NUM < pFscProfileInfo->TotalProfileNum) goto cleanup;
 
     for (i = 0; i < pFscProfileInfo->TotalProfileNum; i++)
     {

@@ -66,6 +66,13 @@ static int FSCInitialize(INT8U *verbose)
         return -1;
     }
 
+    // Initialize LastPWM for all runtime profile slots to fan_initial_pwm
+    for (int i = 0; i < g_FscProfileInfo.TotalProfileNum && i < FSC_PROFILE_MAX_NUM; i++)
+    {
+        pFSCTempSensorInfo[i].CurrentPWM = g_FscSystemInfo.FanInitialPWM;
+        pFSCTempSensorInfo[i].LastPWM = g_FscSystemInfo.FanInitialPWM;
+    }
+
     return 0;
 }
 

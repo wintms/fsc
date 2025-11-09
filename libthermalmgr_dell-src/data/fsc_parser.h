@@ -19,6 +19,7 @@
 #define AGGREGATION_AVERAGE 0
 #define AGGREGATION_MAX     1
 
+#pragma pack( 1 )
 typedef struct
 {
     INT8U   FSCMode;
@@ -26,7 +27,7 @@ typedef struct
     INT8U   FanMaxPWM;
     INT8U   FanMinPWM;
     INT8U   FanInitialPWM;
-} PACKED FSC_JSON_SYSTEM_INFO;
+} FSC_JSON_SYSTEM_INFO;
 
 typedef struct
 {
@@ -35,7 +36,7 @@ typedef struct
     double Kp;
     double Ki;
     double Kd;
-} PACKED FSC_JSON_PROFILE_PID;
+} FSC_JSON_PROFILE_PID;
 
 typedef struct
 {
@@ -46,7 +47,7 @@ typedef struct
     double Kp;
     double Ki;
     double Kd;
-} PACKED FSC_JSON_PID_POWER_BUCKET;
+} FSC_JSON_PID_POWER_BUCKET;
 
 typedef struct
 {
@@ -62,7 +63,7 @@ typedef struct
     float FallingHyst;
     INT8U MaxRisingRate;
     INT8U MaxFallingRate;
-} PACKED FSC_JSON_PROFILE_POLYNOMIAL;
+} FSC_JSON_PROFILE_POLYNOMIAL;
 
 typedef struct
 {
@@ -79,15 +80,16 @@ typedef struct
     INT8U   PIDAltCount;
     FSC_JSON_PID_POWER_BUCKET PIDAlt[MAX_PID_POWER_BUCKETS];
     FSC_JSON_PROFILE_POLYNOMIAL PolynomialParameter;
-} PACKED FSC_JSON_PROFILE_INFO;
+} FSC_JSON_PROFILE_INFO;
 
 typedef struct
 {
     INT8U   TotalProfileNum;
     INT8U   TotalLinearProfileNum;
     INT8U   TotalPIDProfileNum;
-    FSC_JSON_PROFILE_INFO   ProfileInfo[FSC_SENSOR_CNT_MAX];
-} PACKED FSC_JSON_ALL_PROFILES_INFO;
+    FSC_JSON_PROFILE_INFO   ProfileInfo[FSC_PROFILE_MAX_NUM];
+} FSC_JSON_ALL_PROFILES_INFO;
+#pragma pack()
 
 extern FSC_JSON_SYSTEM_INFO            g_FscSystemInfo;
 extern FSC_JSON_ALL_PROFILES_INFO      g_FscProfileInfo;

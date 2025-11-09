@@ -18,7 +18,7 @@
 #include "fsc_math.h"
 #include "fsc_common.h"
 
-FSCTempSensor pFSCTempSensorInfo[FSC_SENSOR_CNT_MAX];
+FSCTempSensor pFSCTempSensorInfo[FSC_PROFILE_MAX_NUM];
 FSCAmbientCalibration g_AmbientCalibration;
 
 /*---------------------------------------------------------------------------
