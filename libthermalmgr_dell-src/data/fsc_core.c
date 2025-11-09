@@ -114,7 +114,7 @@ int FSCGetPWMValue_PID(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U
     i_temp = (pFSCTempSensorInfo->CurrentTemp) - (pPIDInfo.SetPoint);
     d_temp = pFSCTempSensorInfo->CurrentTemp - 2 * pFSCTempSensorInfo->LastTemp + pFSCTempSensorInfo->LastLastTemp;
 
-    CurrentPWM = pFSCTempSensorInfo->LastPWM
+    CurrentPWM = (float)pFSCTempSensorInfo->LastPWM
                  + pPIDInfo.Pvalue * p_temp
                  + pPIDInfo.Ivalue * i_temp
                  + pPIDInfo.Dvalue * d_temp;
@@ -135,7 +135,7 @@ int FSCGetPWMValue_PID(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo, INT8U
                  pFSCTempSensorInfo->Label, pFSCTempSensorInfo->CurrentTemp, (int)CurrentPWM);
     }
 
-    pFSCTempSensorInfo->LastPWM = CurrentPWM;
+    pFSCTempSensorInfo->LastPWM = (INT8U)roundf(CurrentPWM);
     pFSCTempSensorInfo->LastLastTemp = pFSCTempSensorInfo->LastTemp;
     pFSCTempSensorInfo->LastTemp = pFSCTempSensorInfo->CurrentTemp;
 
@@ -244,7 +244,7 @@ int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo
     }
 
     // Apply rate limiting
-    CurrentPWM = FSCMath_ApplyRateLimit(pFSCTempSensorInfo->LastPWM, CurrentPWM,
+    CurrentPWM = FSCMath_ApplyRateLimit((float)pFSCTempSensorInfo->LastPWM, (float)CurrentPWM,
                                        pPoly->MaxRisingRate, pPoly->MaxFallingRate);
 
     // Clamp to boundaries
@@ -257,9 +257,9 @@ int FSCGetPWMValue_Polynomial(INT8U *PWMValue, FSCTempSensor *pFSCTempSensorInfo
     }
 
     pFSCTempSensorInfo->LastTemp = pFSCTempSensorInfo->CurrentTemp;
-    pFSCTempSensorInfo->LastPWM = (INT8U)CurrentPWM;
+    pFSCTempSensorInfo->LastPWM = (INT8U)round(CurrentPWM);
 
-    *PWMValue = (INT8U)CurrentPWM;
+    *PWMValue = (INT8U)round(CurrentPWM);
 
     return FSC_OK;
 }
