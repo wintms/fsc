@@ -54,8 +54,11 @@ def build_install():
             return retval
 
     # Install default configuration files to /etc/defconfig/
-    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+"fsc_z9964f_b2f.json", IMAGETREE+"/etc/defconfig/")
-    retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+"fsc_z9964f_f2b.json", IMAGETREE+"/etc/defconfig/")
+    for config_file in config_files:
+        retval = Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/configs/"+config_file, IMAGETREE+"/etc/defconfig/")
+        if retval != 0:
+            return retval
+
     return 0
 #-------------------------------------------------------------------------------------------------------
 #				Rules for Debug Install

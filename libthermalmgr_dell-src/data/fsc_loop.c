@@ -234,7 +234,7 @@ static int FSCReadAndAggregateSensors(INT8U verbose, int BMCInst)
         }
     }
 
-    if (verbose > 1)
+    if (verbose > 2)
     {
         FSCPRINT(" > Sensor reading phase complete\n");
     }

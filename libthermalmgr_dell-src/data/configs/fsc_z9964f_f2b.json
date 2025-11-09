@@ -1,6 +1,6 @@
 {
     "description": "Z9964F F2B Fan Speed Control Configuration",
-    "debug_verbose": 1,
+    "debug_verbose": 3,
 
     "system_info": {
         "fsc_mode": "auto",

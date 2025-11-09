@@ -452,9 +452,70 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
             pFscProfileInfo->ProfileInfo[i].ProfileType = FSC_CTL_POLYNOMIAL;
             if (ParsePolynomialProfile(&pFscProfileInfo->ProfileInfo[i], pProfileItem) != 0) goto cleanup;
         }
-    }
 
-    ret = FSC_OK;
+        ret = FSC_OK;
+
+        // Detailed logging for each parsed profile
+        if (verbose > 2)
+        {
+            FSC_JSON_PROFILE_INFO *P = &pFscProfileInfo->ProfileInfo[i];
+            const char *agg = (P->AggregationMode == AGGREGATION_MAX) ? "max" : "average";
+            FSCPRINT(" > Profile[%02d]: label='%s', idx=%d, type=%d, aggregation=%s\n",
+                     i, P->Label, P->ProfileIndex, P->ProfileType, agg);
+
+            FSCPRINT("   Sensors: count=%d, primary=%d\n", P->SensorCount, P->SensorNum);
+            for (int s = 0; s < P->SensorCount; s++)
+            {
+                FSCPRINT("     sensor_nums[%02d]=%d\n", s, P->SensorNums[s]);
+            }
+
+            FSCPRINT("   Power sensors: count=%d\n", P->PowerSensorCount);
+            for (int ps = 0; ps < P->PowerSensorCount; ps++)
+            {
+                FSCPRINT("     power_sensor_nums[%02d]=%d\n", ps, P->PowerSensorNums[ps]);
+            }
+
+            if (P->ProfileType == FSC_CTL_PID)
+            {
+                FSCPRINT("   PID: setpoint=%.3f, type=%d, Kp=%.5f, Ki=%.5f, Kd=%.5f\n",
+                         P->PIDParameter.SetPoint,
+                         P->PIDParameter.SetPointType,
+                         P->PIDParameter.Kp,
+                         P->PIDParameter.Ki,
+                         P->PIDParameter.Kd);
+                FSCPRINT("   PID power buckets: count=%d\n", P->PIDAltCount);
+                for (int b = 0; b < P->PIDAltCount; b++)
+                {
+                    FSC_JSON_PID_POWER_BUCKET *B = &P->PIDAlt[b];
+                    FSCPRINT("     bucket[%02d]: power_min=%.3f, power_max=%.3f, Kp=%.5f, Ki=%.5f, Kd=%.5f, setpoint=%.3f, type=%d\n",
+                             b, B->PowerMin, B->PowerMax, B->Kp, B->Ki, B->Kd, B->SetPoint, B->SetPointType);
+                }
+            }
+            else if (P->ProfileType == FSC_CTL_POLYNOMIAL)
+            {
+                FSC_JSON_PROFILE_POLYNOMIAL *Q = &P->PolynomialParameter;
+                FSCPRINT("   Polynomial: curve_type=%d, load_scenario=%d\n", Q->CurveType, Q->LoadScenario);
+                if (Q->CurveType == FSC_AMBIENT_CAL_POLYNOMIAL)
+                {
+                    FSCPRINT("   Coefficients: count=%d\n", Q->CoeffCount);
+                    for (int c = 0; c < Q->CoeffCount && c < MAX_POLYNOMIAL_COEFFS; c++)
+                    {
+                        FSCPRINT("     coeff[%02d]=%.6f\n", c, Q->Coefficients[c]);
+                    }
+                }
+                else if (Q->CurveType == FSC_AMBIENT_CAL_PIECEWISE)
+                {
+                    FSCPRINT("   Piecewise points: count=%d\n", Q->PointCount);
+                    for (int p = 0; p < Q->PointCount && p < MAX_PIECEWISE_POINTS; p++)
+                    {
+                        FSCPRINT("     point[%02d]: temp=%.3f, pwm=%.3f\n", p, Q->PiecewisePoints[p].temp, Q->PiecewisePoints[p].pwm);
+                    }
+                }
+                FSCPRINT("   Limits: falling_hyst=%.3f, max_rising_rate=%d, max_falling_rate=%d\n",
+                         Q->FallingHyst, Q->MaxRisingRate, Q->MaxFallingRate);
+            }
+        }
+    }
 
     DEBUG_PARSE(verbose, " > Parsed %d profiles\n", pFscProfileInfo->TotalProfileNum);
 
