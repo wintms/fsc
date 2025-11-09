@@ -9,6 +9,7 @@
 
 #include "Types.h"
 #include "fsc.h"
+#include "fsc_math.h"
 
 // FAN control algorithm
 #define FSC_CTL_INVALID         0
@@ -66,10 +67,7 @@ typedef struct
     INT8U CoeffCount;                       // Number of coefficients for polynomial
     float Coefficients[MAX_POLYNOMIAL_COEFFS]; // Polynomial coefficients [a0, a1, a2, a3] for ΔT = a0 + a1*PWM + a2*PWM^2 + a3*PWM^3
     INT8U PointCount;                       // Number of points for piecewise linear
-    struct {
-        INT8U pwm;                          // PWM value
-        float delta_temp;                   // Temperature delta at this PWM
-    } PiecewisePoints[MAX_PIECEWISE_POINTS];
+    FSCMath_PwmDeltaT PiecewisePoints[MAX_PIECEWISE_POINTS];
 } FSCAmbientCalibration;
 
 // Ambient base curve structure for environment temperature to PWM mapping
@@ -80,10 +78,7 @@ typedef struct
     INT8U CoeffCount;                       // Number of coefficients for polynomial
     float Coefficients[MAX_POLYNOMIAL_COEFFS]; // Polynomial coefficients for PWM = f(Ambient_temp)
     INT8U PointCount;                       // Number of points for piecewise linear
-    struct {
-        INT8U temp;                         // Ambient temperature
-        INT8U pwm;                          // PWM value at this temperature
-    } PiecewisePoints[MAX_PIECEWISE_POINTS];
+    FSCMath_TempPwm PiecewisePoints[MAX_PIECEWISE_POINTS];
     INT8U FallingHyst;                      // Falling hysteresis in degrees C (default 2)
     INT8U MaxRisingRate;                    // Maximum rising rate %/cycle (default 10)
     INT8U MaxFallingRate;                   // Maximum falling rate %/cycle (default 5)

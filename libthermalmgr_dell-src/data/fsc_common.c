@@ -11,6 +11,7 @@
 #include "cJSON.h"
 #include "fsc_common.h"
 #include "fsc_utils.h"
+#include "fsc_parser.h"
 
 /*---------------------------------------------------------------------------
 * @fn FscParseContext_Init

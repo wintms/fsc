@@ -13,14 +13,14 @@
 // Piecewise point structures for different use cases
 typedef struct
 {
-    float pwm;          // PWM value
+    INT8U pwm;          // PWM value
     float delta_temp;   // Temperature delta
 } FSCMath_PwmDeltaT;
 
 typedef struct
 {
-    float temp;         // Temperature value
-    float pwm;          // PWM value
+    INT8U temp;         // Temperature value
+    INT8U pwm;          // PWM value
 } FSCMath_TempPwm;
 
 // Function prototypes
