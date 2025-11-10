@@ -23,7 +23,7 @@ FSC_JSON_ALL_PROFILES_INFO      g_FscProfileInfo;
 // Internal helper macros
 #define DEBUG_PARSE(verbose, fmt, ...) \
     do { \
-        if (verbose > 1) { \
+        if (verbose > 0) { \
             FSCPRINT(fmt, ##__VA_ARGS__); \
         } \
     } while(0)
@@ -32,7 +32,7 @@ FSC_JSON_ALL_PROFILES_INFO      g_FscProfileInfo;
     do { \
         double _dtmp; \
         if (ConvertcJSONToValue(json, key, &_dtmp) != 0) { \
-            printf("fsc_parser: %s\n", msg); \
+            FSCPRINT("%s\n", msg); \
             goto cleanup; \
         } \
         var = _dtmp; \
@@ -42,7 +42,7 @@ FSC_JSON_ALL_PROFILES_INFO      g_FscProfileInfo;
     do { \
         char _stmp[LABEL_LENGTH_MAX] = {0}; \
         if (ConvertcJSONToValue(json, key, _stmp) != 0 || !strlen(_stmp)) { \
-            printf("fsc_parser: %s\n", msg); \
+            FSCPRINT("%s\n", msg); \
             goto cleanup; \
         } \
         strncpy(var, _stmp, (size) - 1); \
@@ -63,14 +63,14 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
 
     if (FscParseContext_Init(&ctx, filename) != FSC_OK)
     {
-        printf("fsc_parser: Failed to load %s\n", filename);
+        FSCPRINT("Failed to load %s\n", filename);
         return FSC_ERR_IO;
     }
 
     pAmbientCalInfo = cJSON_GetObjectItem(ctx.json_root, "ambient_calibration");
     if (pAmbientCalInfo == NULL)
     {
-        printf("fsc_parser: ambient_calibration not found, using default values\n");
+        FSCPRINT("ambient_calibration not found, using default values\n");
         pAmbientCalibration->CalType = FSC_AMBIENT_CAL_POLYNOMIAL;
         pAmbientCalibration->CoeffCount = 2;
         pAmbientCalibration->Coefficients[0] = 0.0f;
@@ -83,9 +83,9 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
     PARSE_DOUBLE_OR_GOTO(pAmbientCalInfo, "cal_type", dTmp, "get cal_type error");
     pAmbientCalibration->CalType = (INT8U)dTmp;
 
-    if (verbose > 2)
+    if (verbose > 0)
     {
-        FSCPRINT(" > Ambient calibration: cal_type=%d\n", pAmbientCalibration->CalType);
+        FSCPRINT("Ambient calibration: cal_type = %d\n", pAmbientCalibration->CalType);
     }
 
     if (pAmbientCalibration->CalType == FSC_AMBIENT_CAL_POLYNOMIAL)
@@ -96,7 +96,7 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
         cJSON *pCoeffsArray = cJSON_GetObjectItem(pAmbientCalInfo, "coefficients");
         if (pCoeffsArray == NULL)
         {
-            printf("fsc_parser: get coefficients array error\n");
+            FSCPRINT("get coefficients array error\n");
             goto cleanup;
         }
 
@@ -105,19 +105,19 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
             cJSON *pCoeffItem = cJSON_GetArrayItem(pCoeffsArray, i);
             if (pCoeffItem == NULL)
             {
-                printf("fsc_parser: get coefficient[%d] error\n", i);
+                FSCPRINT("get coefficient[%d] error\n", i);
                 goto cleanup;
             }
             pAmbientCalibration->Coefficients[i] = (float)cJSON_GetNumberValue(pCoeffItem);
         }
 
         // Detailed logging for polynomial coefficients
-        if (verbose > 2)
+        if (verbose > 0)
         {
-            FSCPRINT("   Polynomial: coeff_count=%d\n", pAmbientCalibration->CoeffCount);
+            FSCPRINT("Polynomial: coeff_count=%d\n", pAmbientCalibration->CoeffCount);
             for (int c = 0; c < pAmbientCalibration->CoeffCount && c < MAX_POLYNOMIAL_COEFFS; c++)
             {
-                FSCPRINT("     coeff[%02d]=%.6f\n", c, pAmbientCalibration->Coefficients[c]);
+                FSCPRINT("coeff[%02d]=%.6f\n", c, pAmbientCalibration->Coefficients[c]);
             }
         }
     }
@@ -129,7 +129,7 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
         pPointsArray = cJSON_GetObjectItem(pAmbientCalInfo, "piecewise_points");
         if (pPointsArray == NULL)
         {
-            printf("fsc_parser: get piecewise_points array error\n");
+            FSCPRINT("get piecewise_points array error\n");
             goto cleanup;
         }
 
@@ -138,7 +138,7 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
             cJSON *pPointItem = cJSON_GetArrayItem(pPointsArray, i);
             if (pPointItem == NULL)
             {
-                printf("fsc_parser: get piecewise_point[%d] error\n", i);
+                FSCPRINT("get piecewise_point[%d] error\n", i);
                 goto cleanup;
             }
 
@@ -150,12 +150,12 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
         }
 
         // Detailed logging for piecewise points
-        if (verbose > 2)
+        if (verbose > 0)
         {
-            FSCPRINT("   Piecewise points: count=%d\n", pAmbientCalibration->PointCount);
+            FSCPRINT("Piecewise points: count=%d\n", pAmbientCalibration->PointCount);
             for (int p = 0; p < pAmbientCalibration->PointCount && p < MAX_PIECEWISE_POINTS; p++)
             {
-                FSCPRINT("     point[%02d]: pwm=%.3f, delta_temp=%.3f\n",
+                FSCPRINT("point[%02d]: pwm=%.3f, delta_temp=%.3f\n",
                          p, pAmbientCalibration->PiecewisePoints[p].pwm,
                          pAmbientCalibration->PiecewisePoints[p].delta_temp);
             }
@@ -164,7 +164,7 @@ int ParseAmbientCalibrationFromJson(char *filename, FSCAmbientCalibration *pAmbi
 
     ret = FSC_OK;
 
-    DEBUG_PARSE(verbose, " > Parsed ambient_calibration: CalType=%d\n", pAmbientCalibration->CalType);
+    DEBUG_PARSE(verbose, "Parsed ambient_calibration: CalType=%d\n", pAmbientCalibration->CalType);
 
 cleanup:
     FscParseContext_Cleanup(&ctx);
@@ -183,13 +183,13 @@ int ParseDebugVerboseFromJson(char *filename, INT8U *verbose)
 
     if (FscParseContext_Init(&ctx, filename) != FSC_OK)
     {
-        printf("fsc_parser: Failed to load %s\n", filename);
+        FSCPRINT("Failed to load %s\n", filename);
         return FSC_ERR_IO;
     }
 
     if (ConvertcJSONToValue(ctx.json_root, "debug_verbose", &Verbose) != 0)
     {
-        printf("fsc_parser: get debug_verbose error\n");
+        FSCPRINT("get debug_verbose error\n");
         goto cleanup;
     }
 
@@ -392,7 +392,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
 
     if (FscParseContext_Init(&ctx, filename) != FSC_OK)
     {
-        printf("fsc_parser: Failed to load %s\n", filename);
+        FSCPRINT("Failed to load %s\n", filename);
         return FSC_ERR_IO;
     }
 
@@ -483,7 +483,7 @@ int ParseFSCProfileFromJson(char *filename, FSC_JSON_ALL_PROFILES_INFO *pFscProf
         ret = FSC_OK;
 
         // Detailed logging for each parsed profile
-        if (verbose > 2)
+        if (verbose > 0)
         {
             FSC_JSON_PROFILE_INFO *P = &pFscProfileInfo->ProfileInfo[i];
             const char *agg = (P->AggregationMode == AGGREGATION_MAX) ? "max" : "average";
@@ -565,7 +565,7 @@ int ParseSystemInfoFromJson(char *filename, FSC_JSON_SYSTEM_INFO *pFscSystemInfo
 
     if (FscParseContext_Init(&ctx, filename) != FSC_OK)
     {
-        printf("fsc_parser: Failed to load %s\n", filename);
+        FSCPRINT("Failed to load %s\n", filename);
         return FSC_ERR_IO;
     }
 
@@ -600,7 +600,7 @@ int ParseSystemInfoFromJson(char *filename, FSC_JSON_SYSTEM_INFO *pFscSystemInfo
 
     ret = FSC_OK;
 
-    DEBUG_PARSE(verbose, " > Parsed system_info: mode=%d, maxPWM=%d%%, minPWM=%d%%, initialPWM=%d%%\n",
+    DEBUG_PARSE(verbose, "Parsed system_info: mode=%d, maxPWM=%d%%, minPWM=%d%%, initialPWM=%d%%\n",
                pFscSystemInfo->FSCMode, pFscSystemInfo->FanMaxPWM, pFscSystemInfo->FanMinPWM, pFscSystemInfo->FanInitialPWM);
 
 cleanup:

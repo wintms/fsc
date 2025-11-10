@@ -236,14 +236,9 @@ static int FSCReadAndAggregateSensors(INT8U verbose, int BMCInst)
     {
         if (FSCReadSensorsForProfile(i, verbose, BMCInst) != FSC_OK)
         {
-            printf("FSC: Failed to read sensors for profile %d\n", i);
+            FSCPRINT("Failed to read sensors for profile %d\n", i);
             return FSC_ERR_IO;
         }
-    }
-
-    if (verbose > 2)
-    {
-        FSCPRINT(" > Sensor reading phase complete\n");
     }
 
     return FSC_OK;
@@ -304,14 +299,9 @@ static int FSCCalculateAllProfilePWMs(INT8U verbose, int BMCInst)
     {
         if (FSCCalculateProfilePWM(i, verbose, BMCInst) != FSC_OK)
         {
-            printf("FSC: Failed to calculate PWM for profile %d\n", i);
+            FSCPRINT("  Failed to calculate PWM for profile %d\n", i);
             return FSC_ERR_IO;
         }
-    }
-
-    if (verbose > 1)
-    {
-        FSCPRINT(" > PWM calculation phase complete\n");
     }
 
     return FSC_OK;
@@ -334,9 +324,18 @@ static INT8U FSCDetermineMaxPWM(INT8U verbose)
         }
     }
 
+    if (output_pwm > g_FscSystemInfo.FanMaxPWM)
+    {
+        output_pwm = g_FscSystemInfo.FanMaxPWM;
+    }
+    else if (output_pwm < g_FscSystemInfo.FanMinPWM)
+    {
+        output_pwm = g_FscSystemInfo.FanMinPWM;
+    }
+
     if (verbose > 0)
     {
-        FSCPRINT(" > Determined max PWM: %d\n", output_pwm);
+        FSCPRINT("> Max fan PWM output(%%) = %d\n", output_pwm);
     }
 
     return output_pwm;
@@ -353,7 +352,10 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
     if (FSCReadAndAggregateSensors(verbose, BMCInst) != FSC_OK)
     {
         *pwm = g_FscSystemInfo.FanMaxPWM;
-        printf("FSC: Sensor read phase failed\n");
+        if (verbose > 0)
+        {
+            FSCPRINT("Sensor read phase failed, fan PWM output(%%) = %d\n", *pwm);
+        }
         return FSC_ERR_IO;
     }
 
@@ -361,7 +363,10 @@ static int FSCUpdateOutputPWM(INT8U *pwm, INT8U verbose, int BMCInst)
     if (FSCCalculateAllProfilePWMs(verbose, BMCInst) != FSC_OK)
     {
         *pwm = g_FscSystemInfo.FanMaxPWM;
-        printf("FSC: PWM calculation phase failed\n");
+        if (verbose > 0)
+        {
+            FSCPRINT("PWM calculation phase failed, fan PWM output(%%) = %d\n", *pwm);
+        }
         return FSC_ERR_IO;
     }
 
@@ -401,19 +406,16 @@ int FanControlLoop(int BMCInst)
     // overwrite verbose by oem command
     if(g_OEMDebugArray[OEM_DEBUG_Item_FSC])
     {
-        verbose = 3;
+        verbose = 1;
+    }
+
+    if ((GetFanControlMode() == FAN_CTL_MODE_MANUAL) ||
+        (g_FscSystemInfo.FSCMode == FAN_CTL_MODE_MANUAL))
+    {
+        return 0;
     }
 
     FSCUpdateOutputPWM(&pwm, verbose, BMCInst);
-
-    if (pwm > g_FscSystemInfo.FanMaxPWM)
-    {
-        pwm = g_FscSystemInfo.FanMaxPWM;
-    }
-    else if (pwm < g_FscSystemInfo.FanMinPWM)
-    {
-        pwm = g_FscSystemInfo.FanMinPWM;
-    }
 
     // Set the calculated PWM to all chassis fans
     OEM_SetAllFanTraysPWM(pwm);

@@ -47,25 +47,41 @@ def build_package_libthermalmgr_dell():
     TEMPDIR = PrjVars["TEMPDIR"]
     PACKAGE = PrjVars["PACKAGE"]
     BUILD = PrjVars["BUILD"]
-    IMAGETREE=PrjVars["IMAGE_TREE"]
-    actualpath = os.getcwd()
-    return Py_PackSPX("./",PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/libthermalmgr_dell.so."+PrjVars["PKG_MAJOR"]+"."+PrjVars["PKG_MINOR"]+"."+PrjVars["PKG_AUX"])
+    PKG_MINOR=PrjVars["PKG_MINOR"]
+    PKG_MAJOR=PrjVars["PKG_MAJOR"]
+    PKG_AUX=PrjVars["PKG_AUX"]
+
+    retval = Py_MkdirClean(TEMPDIR+"/"+PACKAGE+"/tmp")
+    if retval != 0:
+        return retval
+
+    config_files = [
+        "fsc_z9964f_b2f.json",
+        "fsc_z9964f_f2b.json"
+    ]
+
+    for config_file in config_files:
+        retval = Py_CopyFile(BUILD+"/"+PACKAGE+"/data/configs/"+config_file, TEMPDIR+"/"+PACKAGE+"/tmp")
+        if retval != 0:
+            return retval
+
+    retval = Py_CopyFile(BUILD+"/"+PACKAGE+"/data/libthermalmgr_dell.so."+PKG_MAJOR+"."+PKG_MINOR+"."+PKG_AUX,TEMPDIR+"/"+PACKAGE+"/tmp")
+    if retval != 0:
+        return retval
+
+    return Py_PackSPX("./",TEMPDIR+"/"+PACKAGE+"/tmp")
 
 def build_package_libthermalmgr_dell_dev():
-    retval=Py_MkdirClean(PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
+    TEMPDIR = PrjVars["TEMPDIR"]
+    PACKAGE = PrjVars["PACKAGE"]
+    BUILD = PrjVars["BUILD"]
+
+    retval = Py_Mkdir(TEMPDIR+"/"+PACKAGE+"/tmp")
     if retval != 0:
         return retval
 
-    retval=Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/fsc.h",PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
+    retval = Py_CopyFile(BUILD+"/"+PACKAGE+"/data/fsc.h",TEMPDIR+"/"+PACKAGE+"/tmp")
     if retval != 0:
         return retval
 
-    retval=Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/libthermalmgr_dell.a",PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
-    if retval != 0:
-        return retval
-
-    retval=Py_CopyFile(PrjVars["BUILD"]+"/"+PrjVars["PACKAGE"]+"/data/libthermalmgr_dell.so."+PrjVars["PKG_MAJOR"]+"."+PrjVars["PKG_MINOR"]+"."+PrjVars["PKG_AUX"],PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
-    if retval != 0:
-        return retval
-
-    return Py_PackSPX("./",PrjVars["TEMPDIR"]+"/"+PrjVars["PACKAGE"]+"/tmp")
+    return Py_PackSPX("./", TEMPDIR+"/"+PACKAGE+"/tmp")

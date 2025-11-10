@@ -47,7 +47,7 @@ typedef struct
     float Ivalue;
     float Dvalue;    
     signed char SetPoint;
-    signed char SetPointType;
+    signed char SetPointType; // 0 - static, 1 - dynamic
 } FSCPID;
 
 typedef struct

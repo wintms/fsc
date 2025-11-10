@@ -19,7 +19,7 @@
     "profile_info": {
         "profile_list": [
             {
-                "label": "CPU sensor",
+                "label": "CPU",
                 "profile_index": 0,
                 "sensor_num": 1,
                 "type": "pid",
@@ -30,7 +30,7 @@
                 "kd": 0.1
             },
             {
-                "label": "Inlet sensor",
+                "label": "Ambient(Inlet based)",
                 "profile_index": 1,
                 "sensor_nums": [17, 18],
                 "aggregation": "average",

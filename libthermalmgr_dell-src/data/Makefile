@@ -9,7 +9,7 @@ DEBUG = n
 
 #---------------------- Change according to your files ------------------------
 LIBRARY_NAME = libthermalmgr_dell
-SRC =  fsc_parser.c fsc_common.c fsc_math.c fsc_core.c fsc_loop.c
+SRC =  fsc_parser.c fsc_common.c fsc_math.c fsc_core.c fsc.c fsc_loop.c
 
 CFLAGS += -I${SPXINC}/global
 CFLAGS += -I${SPXINC}/unix
