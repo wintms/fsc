@@ -33,7 +33,7 @@ float FSCGetAmbientTemperature(INT16S inlet_temp, INT8U last_pwm, INT8U verbose)
 
     if (g_AmbientCalibration.CalType == FSC_AMBIENT_CAL_POLYNOMIAL)
     {
-        delta_temp = FSCMath_EvaluatePolynomial((float)last_pwm,
+        delta_temp = FSCMath_EvaluatePolynomial((float)(last_pwm / 100.0f),
                                                g_AmbientCalibration.Coefficients,
                                                g_AmbientCalibration.CoeffCount);
 
